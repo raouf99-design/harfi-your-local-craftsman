@@ -57,7 +57,7 @@ function Onboarding() {
               className="group relative rounded-2xl gold-gradient text-black font-bold py-4 px-5 flex items-center justify-between shadow-lg glow-gold"
             >
               <div className="text-right">
-                <div className="text-base">أنا عميل</div>
+                <div className="text-base flex items-center gap-2 justify-end">🔍 أنا عميل</div>
                 <div className="text-xs opacity-70 font-medium">أبحث عن حرفي لإنجاز عمل</div>
               </div>
               <span className="h-10 w-10 rounded-xl bg-black/15 flex items-center justify-center text-xl">←</span>
