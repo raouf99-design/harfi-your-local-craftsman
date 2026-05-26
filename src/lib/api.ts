@@ -5,7 +5,9 @@ export type Role = "customer" | "craftsman";
 
 export interface User {
   id: string;
-  phone: string;
+  phone?: string;
+  email?: string;
+  avatar_url?: string;
   role: Role;
   name?: string;
   profession?: string;
