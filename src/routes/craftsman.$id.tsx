@@ -234,6 +234,8 @@ function CraftsmanProfile() {
           <img src={lightbox} alt="" className="max-h-full max-w-full rounded-2xl" />
         </div>
       )}
+
+      <div className="fixed bottom-16 inset-x-0 z-30 px-5">
         <div className="mx-auto max-w-md flex gap-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2">
           {authed && (
             <>
