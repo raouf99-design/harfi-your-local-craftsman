@@ -28,7 +28,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await supabaseAdmin
       .from("profiles")
-      .select("user_id, name, phone, profession, wilaya, commune, available, avatar_url")
+      .select("user_id, name, phone, email, profession, wilaya, commune, available, avatar_url")
       .eq("user_id", context.userId)
       .maybeSingle();
     if (error) {
