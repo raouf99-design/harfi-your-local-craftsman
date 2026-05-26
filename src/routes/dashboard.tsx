@@ -19,9 +19,30 @@ interface IncomingJob {
 }
 
 const MOCK_JOBS: IncomingJob[] = [
-  { id: "j1", client: "أمين قاسمي", category: "إصلاح تسرب", address: "حي بدر، الجزائر", price: 3500, status: "new" },
-  { id: "j2", client: "سارة بلال", category: "تركيب حنفية", address: "السانيا، وهران", price: 2000, status: "new" },
-  { id: "j3", client: "كريم زيدان", category: "صيانة كهربائية", address: "الخروب، قسنطينة", price: 4200, status: "accepted" },
+  {
+    id: "j1",
+    client: "أمين قاسمي",
+    category: "إصلاح تسرب",
+    address: "حي بدر، الجزائر",
+    price: 3500,
+    status: "new",
+  },
+  {
+    id: "j2",
+    client: "سارة بلال",
+    category: "تركيب حنفية",
+    address: "السانيا، وهران",
+    price: 2000,
+    status: "new",
+  },
+  {
+    id: "j3",
+    client: "كريم زيدان",
+    category: "صيانة كهربائية",
+    address: "الخروب، قسنطينة",
+    price: 4200,
+    status: "accepted",
+  },
 ];
 
 function Dashboard() {
@@ -32,7 +53,10 @@ function Dashboard() {
 
   useEffect(() => {
     const s = getSession();
-    if (!s) { navigate({ to: "/" }); return; }
+    if (!s) {
+      navigate({ to: "/" });
+      return;
+    }
     setSess(s);
     setAvailable(s.user.available ?? true);
   }, [navigate]);
@@ -60,7 +84,10 @@ function Dashboard() {
             <div className="text-5xl">🔒</div>
             <p className="mt-3 font-bold">لوحة الحرفي</p>
             <p className="mt-1 text-sm text-muted-foreground">هذه الصفحة مخصصة للحرفيين فقط.</p>
-            <Link to="/home" className="mt-5 inline-block gold-gradient text-black font-bold rounded-xl px-5 py-2.5 text-sm">
+            <Link
+              to="/home"
+              className="mt-5 inline-block gold-gradient text-black font-bold rounded-xl px-5 py-2.5 text-sm"
+            >
               العودة للرئيسية
             </Link>
           </div>
@@ -70,7 +97,6 @@ function Dashboard() {
       </main>
     );
   }
-
 
   const accepted = jobs.filter((j) => j.status === "accepted");
   const done = jobs.filter((j) => j.status === "done");
@@ -98,16 +124,25 @@ function Dashboard() {
         </header>
 
         <div className="mt-6 grid grid-cols-3 gap-2">
-          <KPI icon={<Clock className="h-4 w-4" />} label="جديدة" value={jobs.filter(j => j.status === "new").length} />
+          <KPI
+            icon={<Clock className="h-4 w-4" />}
+            label="جديدة"
+            value={jobs.filter((j) => j.status === "new").length}
+          />
           <KPI icon={<CheckCircle2 className="h-4 w-4" />} label="مقبولة" value={accepted.length} />
           <KPI icon={<TrendingUp className="h-4 w-4" />} label="منجزة" value={done.length} />
         </div>
 
-        <Link to="/earnings" className="mt-4 block card-gold rounded-2xl p-4 bg-gradient-to-br from-[color:var(--gold)]/15 to-transparent">
+        <Link
+          to="/earnings"
+          className="mt-4 block card-gold rounded-2xl p-4 bg-gradient-to-br from-[color:var(--gold)]/15 to-transparent"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">إجمالي الأرباح</p>
-              <p className="text-2xl font-black gold-text mt-1">{earnings.toLocaleString("ar-DZ")} دج</p>
+              <p className="text-2xl font-black gold-text mt-1">
+                {earnings.toLocaleString("ar-DZ")} دج
+              </p>
             </div>
             <Wallet className="h-8 w-8 text-[color:var(--gold)]" />
           </div>
@@ -115,36 +150,57 @@ function Dashboard() {
 
         <h2 className="mt-7 text-sm font-bold">طلبات واردة</h2>
         <ul className="mt-3 space-y-3">
-          {jobs.filter(j => j.status !== "done").map((j) => (
-            <li key={j.id} className="card-gold rounded-2xl p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-bold">{j.client}</p>
-                  <p className="text-xs text-[color:var(--gold)]">{j.category}</p>
-                  <p className="text-xs text-muted-foreground mt-1">📍 {j.address}</p>
+          {jobs
+            .filter((j) => j.status !== "done")
+            .map((j) => (
+              <li key={j.id} className="card-gold rounded-2xl p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-bold">{j.client}</p>
+                    <p className="text-xs text-[color:var(--gold)]">{j.category}</p>
+                    <p className="text-xs text-muted-foreground mt-1">📍 {j.address}</p>
+                  </div>
+                  <p className="text-sm font-black gold-text">
+                    {j.price.toLocaleString("ar-DZ")} دج
+                  </p>
                 </div>
-                <p className="text-sm font-black gold-text">{j.price.toLocaleString("ar-DZ")} دج</p>
-              </div>
 
-              {j.status === "new" && (
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button onClick={() => act(j.id, "declined")} className="py-2.5 rounded-xl bg-card border border-white/10 text-sm">رفض</button>
-                  <button onClick={() => act(j.id, "accepted")} className="py-2.5 rounded-xl gold-gradient text-black text-sm font-bold">قبول</button>
-                </div>
-              )}
+                {j.status === "new" && (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => act(j.id, "declined")}
+                      className="py-2.5 rounded-xl bg-card border border-white/10 text-sm"
+                    >
+                      رفض
+                    </button>
+                    <button
+                      onClick={() => act(j.id, "accepted")}
+                      className="py-2.5 rounded-xl gold-gradient text-black text-sm font-bold"
+                    >
+                      قبول
+                    </button>
+                  </div>
+                )}
 
-              {j.status === "accepted" && (
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button className="py-2.5 rounded-xl bg-card border border-white/10 text-sm">📷 رفع صور</button>
-                  <button onClick={() => act(j.id, "done")} className="py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-sm font-bold">إنهاء العمل</button>
-                </div>
-              )}
+                {j.status === "accepted" && (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button className="py-2.5 rounded-xl bg-card border border-white/10 text-sm">
+                      📷 رفع صور
+                    </button>
+                    <button
+                      onClick={() => act(j.id, "done")}
+                      className="py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-sm font-bold"
+                    >
+                      إنهاء العمل
+                    </button>
+                  </div>
+                )}
 
-              {j.status === "declined" && (
-                <p className="mt-2 text-xs text-red-300">تم رفض هذا الطلب.</p>
-              )}
-            </li>
-          ))}
+                {j.status === "declined" && (
+                  <p className="mt-2 text-xs text-red-300">تم رفض هذا الطلب.</p>
+                )}
+              </li>
+            ))}
         </ul>
       </div>
       <BottomNav />
