@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { FloatingContacts } from "@/components/FloatingContacts";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { useEffect } from "react";
 import { getSession } from "@/lib/api";
 import logo from "@/assets/harfi-logo.png";
+
 
 export const Route = createFileRoute("/")({
   component: Onboarding,
@@ -17,6 +19,8 @@ function Onboarding() {
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-background">
+      <PWAInstallBanner />
+
       {/* glow background */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-[-20%] right-[-10%] h-[60vh] w-[60vh] rounded-full bg-[color:var(--gold)] opacity-[0.12] blur-[120px]" />
