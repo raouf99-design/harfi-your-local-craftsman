@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "craftsmen-media public read" ON storage.objects;
