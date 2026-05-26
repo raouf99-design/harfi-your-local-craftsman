@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as EarningsRouteImport } from './routes/earnings'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -16,10 +17,16 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RequestsIndexRouteImport } from './routes/requests.index'
 import { Route as RequestsNewRouteImport } from './routes/requests.new'
+import { Route as RequestsIdRouteImport } from './routes/requests.$id'
 import { Route as CraftsmanIdRouteImport } from './routes/craftsman.$id'
 import { Route as CategoryIdRouteImport } from './routes/category.$id'
 import { Route as AuthRoleRouteImport } from './routes/auth.$role'
 
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
@@ -55,6 +62,11 @@ const RequestsNewRoute = RequestsNewRouteImport.update({
   path: '/requests/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RequestsIdRoute = RequestsIdRouteImport.update({
+  id: '/requests/$id',
+  path: '/requests/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CraftsmanIdRoute = CraftsmanIdRouteImport.update({
   id: '/craftsman/$id',
   path: '/craftsman/$id',
@@ -77,9 +89,11 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/earnings': typeof EarningsRoute
   '/home': typeof HomeRoute
+  '/profile': typeof ProfileRoute
   '/auth/$role': typeof AuthRoleRoute
   '/category/$id': typeof CategoryIdRoute
   '/craftsman/$id': typeof CraftsmanIdRoute
+  '/requests/$id': typeof RequestsIdRoute
   '/requests/new': typeof RequestsNewRoute
   '/requests/': typeof RequestsIndexRoute
 }
@@ -89,9 +103,11 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/earnings': typeof EarningsRoute
   '/home': typeof HomeRoute
+  '/profile': typeof ProfileRoute
   '/auth/$role': typeof AuthRoleRoute
   '/category/$id': typeof CategoryIdRoute
   '/craftsman/$id': typeof CraftsmanIdRoute
+  '/requests/$id': typeof RequestsIdRoute
   '/requests/new': typeof RequestsNewRoute
   '/requests': typeof RequestsIndexRoute
 }
@@ -102,9 +118,11 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/earnings': typeof EarningsRoute
   '/home': typeof HomeRoute
+  '/profile': typeof ProfileRoute
   '/auth/$role': typeof AuthRoleRoute
   '/category/$id': typeof CategoryIdRoute
   '/craftsman/$id': typeof CraftsmanIdRoute
+  '/requests/$id': typeof RequestsIdRoute
   '/requests/new': typeof RequestsNewRoute
   '/requests/': typeof RequestsIndexRoute
 }
@@ -116,9 +134,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/earnings'
     | '/home'
+    | '/profile'
     | '/auth/$role'
     | '/category/$id'
     | '/craftsman/$id'
+    | '/requests/$id'
     | '/requests/new'
     | '/requests/'
   fileRoutesByTo: FileRoutesByTo
@@ -128,9 +148,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/earnings'
     | '/home'
+    | '/profile'
     | '/auth/$role'
     | '/category/$id'
     | '/craftsman/$id'
+    | '/requests/$id'
     | '/requests/new'
     | '/requests'
   id:
@@ -140,9 +162,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/earnings'
     | '/home'
+    | '/profile'
     | '/auth/$role'
     | '/category/$id'
     | '/craftsman/$id'
+    | '/requests/$id'
     | '/requests/new'
     | '/requests/'
   fileRoutesById: FileRoutesById
@@ -153,15 +177,24 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   EarningsRoute: typeof EarningsRoute
   HomeRoute: typeof HomeRoute
+  ProfileRoute: typeof ProfileRoute
   AuthRoleRoute: typeof AuthRoleRoute
   CategoryIdRoute: typeof CategoryIdRoute
   CraftsmanIdRoute: typeof CraftsmanIdRoute
+  RequestsIdRoute: typeof RequestsIdRoute
   RequestsNewRoute: typeof RequestsNewRoute
   RequestsIndexRoute: typeof RequestsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/home': {
       id: '/home'
       path: '/home'
@@ -211,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RequestsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/requests/$id': {
+      id: '/requests/$id'
+      path: '/requests/$id'
+      fullPath: '/requests/$id'
+      preLoaderRoute: typeof RequestsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/craftsman/$id': {
       id: '/craftsman/$id'
       path: '/craftsman/$id'
@@ -241,12 +281,24 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   EarningsRoute: EarningsRoute,
   HomeRoute: HomeRoute,
+  ProfileRoute: ProfileRoute,
   AuthRoleRoute: AuthRoleRoute,
   CategoryIdRoute: CategoryIdRoute,
   CraftsmanIdRoute: CraftsmanIdRoute,
+  RequestsIdRoute: RequestsIdRoute,
   RequestsNewRoute: RequestsNewRoute,
   RequestsIndexRoute: RequestsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
