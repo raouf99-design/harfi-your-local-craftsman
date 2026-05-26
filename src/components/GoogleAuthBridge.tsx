@@ -63,10 +63,8 @@ export function GoogleAuthBridge() {
       }
     };
 
-    // Initial check (in case the page loaded with an existing supabase session)
-    supabase.auth.getSession().then(({ data }) => {
-      handleSession("INITIAL_SESSION", !!data.session);
-    });
+    // onAuthStateChange fires INITIAL_SESSION automatically on subscribe
+
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
