@@ -1,0 +1,89 @@
+import { useState } from "react";
+import { lovable } from "@/integrations/lovable";
+import { toast } from "sonner";
+import type { Role } from "@/lib/api";
+
+const GOOGLE_PENDING_ROLE_KEY = "harfi_google_pending_role";
+
+interface Props {
+  role: Role;
+  label?: string;
+}
+
+export function GoogleSignInButton({ role, label = "المتابعة باستخدام Google" }: Props) {
+  const [loading, setLoading] = useState(false);
+
+  const onClick = async () => {
+    setLoading(true);
+    try {
+      // Persist the intended role so the post-redirect handler knows it
+      try {
+        localStorage.setItem(GOOGLE_PENDING_ROLE_KEY, role);
+      } catch {
+        // ignore storage errors (private mode)
+      }
+
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+        extraParams: { prompt: "select_account" },
+      });
+
+      if (result.redirected) return; // browser is navigating away
+
+      if (result.error) {
+        console.error("[google] sign-in failed", result.error);
+        toast.error("تعذّر تسجيل الدخول عبر Google");
+        setLoading(false);
+        return;
+      }
+
+      // Token-only response (rare) — completion handled by GoogleAuthBridge
+    } catch (err) {
+      console.error("[google] unexpected error", err);
+      toast.error("حدث خطأ غير متوقع، حاول مرة أخرى");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="group relative w-full rounded-2xl border border-[color:var(--gold)]/40 bg-card hover:bg-[color:var(--gold)]/10 hover:border-[color:var(--gold)] transition-all px-5 py-3.5 flex items-center justify-center gap-3 font-bold text-foreground shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+    >
+      <span className="h-7 w-7 rounded-full bg-white flex items-center justify-center shadow-sm">
+        <GoogleGlyph />
+      </span>
+      <span className="text-sm">
+        {loading ? "جارٍ فتح Google..." : label}
+      </span>
+      <span className="absolute inset-0 rounded-2xl ring-0 group-hover:ring-2 group-hover:ring-[color:var(--gold)]/30 transition-all pointer-events-none" />
+    </button>
+  );
+}
+
+function GoogleGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.24 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.11A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.11V7.05H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.95l3.66-2.84z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.05l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
+      />
+    </svg>
+  );
+}
+
+export { GOOGLE_PENDING_ROLE_KEY };
