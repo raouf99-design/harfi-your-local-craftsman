@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { api, setSession, ApiError, type Role, type User } from "@/lib/api";
+import { api, setSession, getSession, ApiError, type Role, type User } from "@/lib/api";
+import { PortfolioManager } from "@/components/PortfolioManager";
 
 const ALLOWED_ROLES: readonly Role[] = ["customer", "craftsman"] as const;
 
@@ -14,7 +15,7 @@ function AuthPage() {
   const validRole: Role = isAllowedRole ? (role as Role) : "customer";
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<"phone" | "otp" | "media">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
