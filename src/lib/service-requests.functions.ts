@@ -2,8 +2,30 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createNotification } from "./notifications.server";
 
 const StatusEnum = z.enum(["pending", "accepted", "in_progress", "completed", "cancelled"]);
+
+async function notifyCustomerOfStatus(requestId: string, opts: {
+  type: "request_accepted" | "request_declined" | "request_started" | "request_completed";
+  title: string;
+  body?: string;
+}) {
+  const { data } = await supabaseAdmin
+    .from("service_requests")
+    .select("customer_id, category")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (data?.customer_id) {
+    await createNotification({
+      userId: data.customer_id,
+      type: opts.type,
+      title: opts.title,
+      body: opts.body ?? data.category,
+      requestId,
+    });
+  }
+}
 
 // ---------- Customer: create a request ----------
 const CreateRequestSchema = z.object({
@@ -17,17 +39,46 @@ export const createRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => CreateRequestSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await supabaseAdmin.from("service_requests").insert({
-      customer_id: context.userId,
-      craftsman_id: data.craftsmanId ?? null,
-      category: data.category,
-      address: data.address,
-      description: data.description,
-      status: "pending",
-    });
+    const { data: inserted, error } = await supabaseAdmin
+      .from("service_requests")
+      .insert({
+        customer_id: context.userId,
+        craftsman_id: data.craftsmanId ?? null,
+        category: data.category,
+        address: data.address,
+        description: data.description,
+        status: "pending",
+      })
+      .select("id")
+      .maybeSingle();
     if (error) {
       console.error("[service-requests] create failed", error);
       throw new Error("تعذّر إرسال الطلب");
+    }
+    // Notify the targeted craftsman (if any), otherwise notify all craftsmen in the category.
+    if (data.craftsmanId && inserted?.id) {
+      await createNotification({
+        userId: data.craftsmanId,
+        type: "request_new",
+        title: "طلب جديد",
+        body: `${data.category} — ${data.address}`,
+        requestId: inserted.id,
+      });
+    } else if (inserted?.id) {
+      const { data: crafts } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id")
+        .eq("profession", data.category)
+        .eq("available", true);
+      for (const c of crafts ?? []) {
+        await createNotification({
+          userId: c.user_id,
+          type: "request_new",
+          title: "طلب جديد متاح",
+          body: `${data.category} — ${data.address}`,
+          requestId: inserted.id,
+        });
+      }
     }
     return { ok: true };
   });
@@ -58,14 +109,25 @@ export const rateRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => RateSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await supabaseAdmin
+    const { data: row, error } = await supabaseAdmin
       .from("service_requests")
       .update({ rating: data.rating })
       .eq("id", data.id)
-      .eq("customer_id", context.userId);
+      .eq("customer_id", context.userId)
+      .select("craftsman_id, category")
+      .maybeSingle();
     if (error) {
       console.error("[service-requests] rate failed", error);
       throw new Error("تعذّر حفظ التقييم");
+    }
+    if (row?.craftsman_id) {
+      await createNotification({
+        userId: row.craftsman_id,
+        type: "request_rated",
+        title: `تقييم جديد ${"★".repeat(data.rating)}`,
+        body: row.category,
+        requestId: data.id,
+      });
     }
     return { ok: true };
   });
@@ -77,15 +139,26 @@ export const cancelRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => IdSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await supabaseAdmin
+    const { data: row, error } = await supabaseAdmin
       .from("service_requests")
       .update({ status: "cancelled" })
       .eq("id", data.id)
       .eq("customer_id", context.userId)
-      .in("status", ["pending", "accepted"]);
+      .in("status", ["pending", "accepted"])
+      .select("craftsman_id, category")
+      .maybeSingle();
     if (error) {
       console.error("[service-requests] cancel failed", error);
       throw new Error("تعذّر إلغاء الطلب");
+    }
+    if (row?.craftsman_id) {
+      await createNotification({
+        userId: row.craftsman_id,
+        type: "request_cancelled",
+        title: "أُلغي الطلب من العميل",
+        body: row.category,
+        requestId: data.id,
+      });
     }
     return { ok: true };
   });
@@ -193,6 +266,11 @@ export const acceptJob = createServerFn({ method: "POST" })
       console.error("[service-requests] accept failed", error);
       throw new Error("تعذّر قبول الطلب");
     }
+    await notifyCustomerOfStatus(data.id, {
+      type: "request_accepted",
+      title: "تم قبول طلبك",
+      body: `السعر المقترح: ${data.price} د.ج`,
+    });
     return { ok: true };
   });
 
@@ -210,6 +288,10 @@ export const declineJob = createServerFn({ method: "POST" })
       console.error("[service-requests] decline failed", error);
       throw new Error("تعذّر رفض الطلب");
     }
+    await notifyCustomerOfStatus(data.id, {
+      type: "request_declined",
+      title: "تم رفض الطلب",
+    });
     return { ok: true };
   });
 
@@ -228,6 +310,10 @@ export const startJob = createServerFn({ method: "POST" })
       console.error("[service-requests] start failed", error);
       throw new Error("تعذّر بدء العمل");
     }
+    await notifyCustomerOfStatus(data.id, {
+      type: "request_started",
+      title: "بدأ الحرفي تنفيذ طلبك",
+    });
     return { ok: true };
   });
 
@@ -245,6 +331,10 @@ export const completeJob = createServerFn({ method: "POST" })
       console.error("[service-requests] complete failed", error);
       throw new Error("تعذّر إنهاء العمل");
     }
+    await notifyCustomerOfStatus(data.id, {
+      type: "request_completed",
+      title: "اكتمل العمل — قيّم تجربتك",
+    });
     return { ok: true };
   });
 
