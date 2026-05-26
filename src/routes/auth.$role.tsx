@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { api, setSession, type Role, type User } from "@/lib/api";
+import { api, ApiError, setSession, type Role, type User } from "@/lib/api";
 
 const ALLOWED_ROLES: readonly Role[] = ["customer", "craftsman"] as const;
 
@@ -52,7 +52,11 @@ function AuthPage() {
       });
       setStep("otp");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر إرسال الرمز");
+      if (err instanceof ApiError && err.status === 404) {
+        setError("خدمة التحقق غير متاحة حالياً، يرجى المحاولة لاحقاً");
+      } else {
+        setError(err instanceof Error ? err.message : "تعذّر إرسال الرمز");
+      }
     } finally {
       setLoading(false);
     }
@@ -86,7 +90,11 @@ function AuthPage() {
       setSession({ user: res.user, token: res.token });
       navigate({ to: res.user.role === "craftsman" ? "/dashboard" : "/home" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "رمز التحقق غير صحيح");
+      if (err instanceof ApiError && err.status === 404) {
+        setError("خدمة التحقق غير متاحة حالياً، يرجى المحاولة لاحقاً");
+      } else {
+        setError(err instanceof Error ? err.message : "رمز التحقق غير صحيح");
+      }
     } finally {
       setLoading(false);
     }
