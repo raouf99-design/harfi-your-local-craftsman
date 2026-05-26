@@ -14,9 +14,34 @@ export type Database = {
   }
   public: {
     Tables: {
+      craftsman_portfolio: {
+        Row: {
+          caption: string | null
+          craftsman_id: string
+          created_at: string
+          id: string
+          image_url: string
+        }
+        Insert: {
+          caption?: string | null
+          craftsman_id: string
+          created_at?: string
+          id?: string
+          image_url: string
+        }
+        Update: {
+          caption?: string | null
+          craftsman_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           available: boolean
+          avatar_url: string | null
           commune: string | null
           created_at: string
           id: string
@@ -29,6 +54,7 @@ export type Database = {
         }
         Insert: {
           available?: boolean
+          avatar_url?: string | null
           commune?: string | null
           created_at?: string
           id?: string
@@ -41,6 +67,7 @@ export type Database = {
         }
         Update: {
           available?: boolean
+          avatar_url?: string | null
           commune?: string | null
           created_at?: string
           id?: string
