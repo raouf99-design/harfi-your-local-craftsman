@@ -44,18 +44,21 @@ function CraftsmanProfile() {
   const { cat } = Route.useSearch();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<{ count: number; rating: number | null } | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const authed = !!getSession();
   const fetchPhone = useServerFn(getCraftsmanPhone);
   const fetchStats = useServerFn(getCraftsmenStats);
+  const fetchPortfolio = useServerFn(getCraftsmanPortfolio);
 
   useEffect(() => {
     let active = true;
     (async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, name, profession, wilaya, commune, available")
+        .select("user_id, name, profession, wilaya, commune, available, avatar_url")
         .eq("user_id", id)
         .maybeSingle();
       if (!active) return;
@@ -80,6 +83,12 @@ function CraftsmanProfile() {
       } catch (e) {
         console.error("[craftsman] stats failed", e);
       }
+      try {
+        const res = await fetchPortfolio({ data: { userId: id } });
+        if (active) setPortfolio(res.items as PortfolioItem[]);
+      } catch (e) {
+        console.error("[craftsman] portfolio failed", e);
+      }
       if (!active) return;
       setProfile({ ...(data as Profile), phone });
       setLoading(false);
@@ -87,7 +96,7 @@ function CraftsmanProfile() {
     return () => {
       active = false;
     };
-  }, [id, authed, fetchPhone, fetchStats]);
+  }, [id, authed, fetchPhone, fetchStats, fetchPortfolio]);
 
   if (loading) {
     return (
