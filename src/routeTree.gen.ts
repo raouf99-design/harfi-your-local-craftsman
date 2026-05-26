@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RequestsIndexRouteImport } from './routes/requests.index'
 import { Route as RequestsNewRouteImport } from './routes/requests.new'
 import { Route as CraftsmanIdRouteImport } from './routes/craftsman.$id'
 import { Route as CategoryIdRouteImport } from './routes/category.$id'
@@ -24,6 +25,11 @@ const HomeRoute = HomeRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestsIndexRoute = RequestsIndexRouteImport.update({
+  id: '/requests/',
+  path: '/requests/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RequestsNewRoute = RequestsNewRouteImport.update({
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/category/$id': typeof CategoryIdRoute
   '/craftsman/$id': typeof CraftsmanIdRoute
   '/requests/new': typeof RequestsNewRoute
+  '/requests/': typeof RequestsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/category/$id': typeof CategoryIdRoute
   '/craftsman/$id': typeof CraftsmanIdRoute
   '/requests/new': typeof RequestsNewRoute
+  '/requests': typeof RequestsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/category/$id': typeof CategoryIdRoute
   '/craftsman/$id': typeof CraftsmanIdRoute
   '/requests/new': typeof RequestsNewRoute
+  '/requests/': typeof RequestsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/category/$id'
     | '/craftsman/$id'
     | '/requests/new'
+    | '/requests/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/category/$id'
     | '/craftsman/$id'
     | '/requests/new'
+    | '/requests'
   id:
     | '__root__'
     | '/'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/category/$id'
     | '/craftsman/$id'
     | '/requests/new'
+    | '/requests/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +118,7 @@ export interface RootRouteChildren {
   CategoryIdRoute: typeof CategoryIdRoute
   CraftsmanIdRoute: typeof CraftsmanIdRoute
   RequestsNewRoute: typeof RequestsNewRoute
+  RequestsIndexRoute: typeof RequestsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -122,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/requests/': {
+      id: '/requests/'
+      path: '/requests'
+      fullPath: '/requests/'
+      preLoaderRoute: typeof RequestsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/requests/new': {
@@ -162,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoryIdRoute: CategoryIdRoute,
   CraftsmanIdRoute: CraftsmanIdRoute,
   RequestsNewRoute: RequestsNewRoute,
+  RequestsIndexRoute: RequestsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
