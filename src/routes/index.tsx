@@ -26,8 +26,8 @@ function Onboarding() {
       <div className="mx-auto max-w-md min-h-screen flex flex-col px-6 pt-14 pb-10">
         {/* Brand */}
         <div className="flex flex-col items-center text-center">
-          <div className="h-20 w-20 rounded-3xl gold-gradient flex items-center justify-center text-black text-4xl font-black shadow-xl glow-gold">
-            ح
+          <div className="h-24 w-24 rounded-full overflow-hidden ring-4 ring-[color:var(--gold)] shadow-xl glow-gold">
+            <img src={logo} alt="حرفي" className="h-full w-full object-cover" />
           </div>
           <h1 className="mt-5 text-5xl font-black tracking-tight">
             <span className="gold-text">حرفي</span>
