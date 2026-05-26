@@ -1,8 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { Star } from "lucide-react";
+import { getSession } from "@/lib/api";
 
 export const Route = createFileRoute("/requests/")({
   component: RequestsList,
@@ -30,29 +31,30 @@ const STATUS: Record<RequestItem["status"], { label: string; color: string }> = 
 };
 
 function RequestsList() {
+  const navigate = useNavigate();
+  const [authed, setAuthed] = useState(false);
   const [items, setItems] = useState<RequestItem[]>([]);
 
   useEffect(() => {
+    const s = getSession();
+    if (!s) {
+      navigate({ to: "/" });
+      return;
+    }
+    setAuthed(true);
     const list: RequestItem[] = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
     setItems(list);
-  }, []);
+  }, [navigate]);
 
   const rate = (id: string, r: number) => {
+    // NOTE: Client-side rating is UX-only. Server must enforce that the
+    // request is in `completed` state and that the caller is the customer.
     const next = items.map((i) => i.id === id ? { ...i, rating: r } : i);
     setItems(next);
     localStorage.setItem(STORE_KEY, JSON.stringify(next));
   };
 
-  const advance = (id: string) => {
-    const order: RequestItem["status"][] = ["pending", "accepted", "in_progress", "completed"];
-    const next = items.map((i) => {
-      if (i.id !== id) return i;
-      const idx = order.indexOf(i.status);
-      return { ...i, status: order[Math.min(idx + 1, order.length - 1)] };
-    });
-    setItems(next);
-    localStorage.setItem(STORE_KEY, JSON.stringify(next));
-  };
+  if (!authed) return null;
 
   return (
     <main className="min-h-screen bg-background pb-24">
@@ -89,11 +91,6 @@ function RequestsList() {
                     <span className="text-muted-foreground">
                       {new Date(r.createdAt).toLocaleDateString("ar-DZ")}
                     </span>
-                    {r.status !== "completed" && r.status !== "cancelled" && (
-                      <button onClick={() => advance(r.id)} className="text-[color:var(--gold)] font-bold">
-                        محاكاة التقدم →
-                      </button>
-                    )}
                   </div>
 
                   {r.status === "completed" && (

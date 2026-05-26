@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
+import { getSession } from "@/lib/api";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 
@@ -30,10 +31,17 @@ interface RequestItem {
 function NewRequest() {
   const { craftsmanId, craftsmanName } = Route.useSearch();
   const navigate = useNavigate();
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => {
+    const s = getSession();
+    if (!s) navigate({ to: "/" });
+    else setAuthed(true);
+  }, [navigate]);
   const [category, setCategory] = useState("سباك");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+  if (!authed) return null;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();

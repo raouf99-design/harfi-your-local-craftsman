@@ -1,6 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
+import { getSession } from "@/lib/api";
 
 export const Route = createFileRoute("/earnings")({
   component: Earnings,
@@ -14,6 +16,15 @@ const TXNS = [
 ];
 
 function Earnings() {
+  const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const s = getSession();
+    if (!s || s.user.role !== "craftsman") navigate({ to: "/" });
+    else setReady(true);
+  }, [navigate]);
+  if (!ready) return null;
+
   const total = TXNS.reduce((s, t) => s + t.amount, 0);
   const month = total;
   const week = TXNS.slice(0, 2).reduce((s, t) => s + t.amount, 0);
