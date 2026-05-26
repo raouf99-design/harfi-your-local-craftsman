@@ -266,6 +266,11 @@ export const acceptJob = createServerFn({ method: "POST" })
       console.error("[service-requests] accept failed", error);
       throw new Error("تعذّر قبول الطلب");
     }
+    await notifyCustomerOfStatus(data.id, {
+      type: "request_accepted",
+      title: "تم قبول طلبك",
+      body: `السعر المقترح: ${data.price} د.ج`,
+    });
     return { ok: true };
   });
 
@@ -283,6 +288,10 @@ export const declineJob = createServerFn({ method: "POST" })
       console.error("[service-requests] decline failed", error);
       throw new Error("تعذّر رفض الطلب");
     }
+    await notifyCustomerOfStatus(data.id, {
+      type: "request_declined",
+      title: "تم رفض الطلب",
+    });
     return { ok: true };
   });
 
@@ -301,6 +310,10 @@ export const startJob = createServerFn({ method: "POST" })
       console.error("[service-requests] start failed", error);
       throw new Error("تعذّر بدء العمل");
     }
+    await notifyCustomerOfStatus(data.id, {
+      type: "request_started",
+      title: "بدأ الحرفي تنفيذ طلبك",
+    });
     return { ok: true };
   });
 
@@ -318,6 +331,10 @@ export const completeJob = createServerFn({ method: "POST" })
       console.error("[service-requests] complete failed", error);
       throw new Error("تعذّر إنهاء العمل");
     }
+    await notifyCustomerOfStatus(data.id, {
+      type: "request_completed",
+      title: "اكتمل العمل — قيّم تجربتك",
+    });
     return { ok: true };
   });
 
