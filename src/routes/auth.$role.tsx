@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link, Navigate } from "@tanstack/react-ro
 import { useState } from "react";
 import { api, setSession, getSession, ApiError, type Role, type User } from "@/lib/api";
 import { PortfolioManager } from "@/components/PortfolioManager";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 const ALLOWED_ROLES: readonly Role[] = ["customer", "craftsman"] as const;
 
@@ -234,6 +235,14 @@ function AuthPage() {
             <button disabled={loading} className="btn-gold w-full mt-2">
               {loading ? "جارٍ الإرسال..." : "إرسال رمز التحقق"}
             </button>
+
+            <div className="relative my-6 flex items-center gap-3">
+              <span className="flex-1 h-px bg-border" />
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">أو</span>
+              <span className="flex-1 h-px bg-border" />
+            </div>
+
+            <GoogleSignInButton role={validRole} />
           </form>
         ) : (
           <form onSubmit={verify} className="mt-8 space-y-4">
