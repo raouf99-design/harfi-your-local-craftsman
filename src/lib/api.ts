@@ -1,5 +1,5 @@
 // API client for Harfi backend
-export const API_BASE = "https://harfi-app.onrender.com";
+export const API_BASE = "https://harfi-app.onrender.com/api";
 
 export type Role = "customer" | "craftsman";
 
