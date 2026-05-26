@@ -113,12 +113,18 @@ function AuthPage() {
             {isCraftsman ? "حساب حرفي" : "حساب عميل"}
           </p>
           <h1 className="mt-2 text-3xl font-black">
-            {step === "phone" ? "أدخل رقم هاتفك" : "تحقق من الرمز"}
+            {step === "phone"
+              ? "أدخل رقم هاتفك"
+              : step === "otp"
+                ? "تحقق من الرمز"
+                : "صورتك وأعمالك"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {step === "phone"
               ? "سنرسل لك رمز التحقق عبر رسالة قصيرة."
-              : `أدخل الرمز المرسل إلى ${phone}`}
+              : step === "otp"
+                ? `أدخل الرمز المرسل إلى ${phone}`
+                : "أضف صورة شخصية وبعض صور أعمالك ليثق بك العملاء أكثر."}
           </p>
         </div>
 
