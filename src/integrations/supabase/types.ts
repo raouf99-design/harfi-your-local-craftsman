@@ -53,6 +53,45 @@ export type Database = {
         }
         Relationships: []
       }
+      service_requests: {
+        Row: {
+          address: string
+          category: string
+          craftsman_id: string | null
+          created_at: string
+          customer_id: string
+          description: string
+          id: string
+          price: number | null
+          rating: number | null
+          status: string
+        }
+        Insert: {
+          address: string
+          category: string
+          craftsman_id?: string | null
+          created_at?: string
+          customer_id: string
+          description: string
+          id?: string
+          price?: number | null
+          rating?: number | null
+          status?: string
+        }
+        Update: {
+          address?: string
+          category?: string
+          craftsman_id?: string | null
+          created_at?: string
+          customer_id?: string
+          description?: string
+          id?: string
+          price?: number | null
+          rating?: number | null
+          status?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

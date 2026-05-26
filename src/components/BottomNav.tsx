@@ -1,18 +1,37 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Briefcase, ClipboardList, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Home, Briefcase, ClipboardList, User, Wallet } from "lucide-react";
+import { getSession, type Session } from "@/lib/api";
 
-const items = [
+const CUSTOMER_ITEMS = [
   { to: "/home", label: "الرئيسية", icon: Home },
   { to: "/requests", label: "طلباتي", icon: ClipboardList },
+  { to: "/about", label: "من نحن", icon: User },
+] as const;
+
+const CRAFTSMAN_ITEMS = [
+  { to: "/home", label: "الرئيسية", icon: Home },
   { to: "/dashboard", label: "لوحتي", icon: Briefcase },
+  { to: "/earnings", label: "أرباحي", icon: Wallet },
   { to: "/about", label: "من نحن", icon: User },
 ] as const;
 
 export function BottomNav() {
   const { location } = useRouterState();
+  const [session, setSess] = useState<Session | null>(() => getSession());
+
+  useEffect(() => {
+    setSess(getSession());
+  }, [location.pathname]);
+
+  if (!session) return null;
+
+  const items = session.user.role === "craftsman" ? CRAFTSMAN_ITEMS : CUSTOMER_ITEMS;
+  const cols = items.length === 4 ? "grid-cols-4" : "grid-cols-3";
+
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-white/10 bg-black/80 backdrop-blur-xl">
-      <div className="mx-auto max-w-md grid grid-cols-4">
+      <div className={`mx-auto max-w-md grid ${cols}`}>
         {items.map((it) => {
           const active = location.pathname.startsWith(it.to);
           const Icon = it.icon;

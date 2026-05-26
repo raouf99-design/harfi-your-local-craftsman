@@ -1,55 +1,48 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getSession, setSession, type Session } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { TrendingUp, Wallet, CheckCircle2, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-interface IncomingJob {
+interface Job {
   id: string;
-  client: string;
+  customer_id: string;
+  craftsman_id: string | null;
   category: string;
   address: string;
-  price: number;
-  status: "new" | "accepted" | "declined" | "done";
+  description: string;
+  status: "pending" | "accepted" | "in_progress" | "completed" | "cancelled";
+  price: number | null;
+  created_at: string;
 }
-
-const MOCK_JOBS: IncomingJob[] = [
-  {
-    id: "j1",
-    client: "أمين قاسمي",
-    category: "إصلاح تسرب",
-    address: "حي بدر، الجزائر",
-    price: 3500,
-    status: "new",
-  },
-  {
-    id: "j2",
-    client: "سارة بلال",
-    category: "تركيب حنفية",
-    address: "السانيا، وهران",
-    price: 2000,
-    status: "new",
-  },
-  {
-    id: "j3",
-    client: "كريم زيدان",
-    category: "صيانة كهربائية",
-    address: "الخروب، قسنطينة",
-    price: 4200,
-    status: "accepted",
-  },
-];
 
 function Dashboard() {
   const navigate = useNavigate();
   const [session, setSess] = useState<Session | null>(null);
   const [available, setAvailable] = useState(true);
-  const [jobs, setJobs] = useState<IncomingJob[]>(MOCK_JOBS);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [priceModalId, setPriceModalId] = useState<string | null>(null);
+  const [priceInput, setPriceInput] = useState("");
+
+  const fetchJobs = useCallback(async (uid: string) => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("service_requests")
+      .select("id, customer_id, craftsman_id, category, address, description, status, price, created_at")
+      .or(`status.eq.pending,craftsman_id.eq.${uid}`)
+      .order("created_at", { ascending: false });
+    if (error) console.error("[dashboard] fetch failed", error);
+    setJobs((data ?? []) as Job[]);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     const s = getSession();
@@ -59,22 +52,64 @@ function Dashboard() {
     }
     setSess(s);
     setAvailable(s.user.available ?? true);
-  }, [navigate]);
+    if (s.user.role === "craftsman") fetchJobs(s.user.id);
+    else setLoading(false);
+  }, [navigate, fetchJobs]);
 
   if (!session) return null;
 
-  const toggle = () => {
+  const toggle = async () => {
     const next = !available;
     setAvailable(next);
     setSession({ ...session, user: { ...session.user, available: next } });
+    await supabase.from("profiles").update({ available: next }).eq("user_id", session.user.id);
   };
 
-  const act = (id: string, status: IncomingJob["status"]) =>
-    setJobs((js) => js.map((j) => (j.id === id ? { ...j, status } : j)));
+  const acceptJob = async (id: string, price: number) => {
+    const { error } = await supabase
+      .from("service_requests")
+      .update({ status: "accepted", craftsman_id: session.user.id, price })
+      .eq("id", id);
+    if (error) {
+      console.error("[dashboard] accept failed", error);
+      return;
+    }
+    fetchJobs(session.user.id);
+  };
 
-  // NOTE: This client-side role check is a UX gate only. Real protection
-  // for craftsman-only data and actions MUST be enforced server-side using
-  // the server-issued session and role stored in Lovable Cloud.
+  const declineJob = async (id: string) => {
+    const { error } = await supabase
+      .from("service_requests")
+      .update({ status: "cancelled" })
+      .eq("id", id);
+    if (error) {
+      console.error("[dashboard] decline failed", error);
+      return;
+    }
+    fetchJobs(session.user.id);
+  };
+
+  const completeJob = async (id: string) => {
+    const { error } = await supabase
+      .from("service_requests")
+      .update({ status: "completed" })
+      .eq("id", id);
+    if (error) {
+      console.error("[dashboard] complete failed", error);
+      return;
+    }
+    fetchJobs(session.user.id);
+  };
+
+  const submitPrice = (e: React.FormEvent) => {
+    e.preventDefault();
+    const p = parseInt(priceInput, 10);
+    if (!priceModalId || isNaN(p) || p <= 0) return;
+    acceptJob(priceModalId, p);
+    setPriceModalId(null);
+    setPriceInput("");
+  };
+
   const isCraftsman = session.user.role === "craftsman" && !!session.token;
   if (!isCraftsman) {
     return (
@@ -99,8 +134,8 @@ function Dashboard() {
   }
 
   const accepted = jobs.filter((j) => j.status === "accepted");
-  const done = jobs.filter((j) => j.status === "done");
-  const earnings = done.reduce((s, j) => s + j.price, 0);
+  const done = jobs.filter((j) => j.status === "completed");
+  const earnings = done.reduce((s, j) => s + (j.price ?? 0), 0);
 
   return (
     <main className="min-h-screen bg-background pb-24">
@@ -127,7 +162,7 @@ function Dashboard() {
           <KPI
             icon={<Clock className="h-4 w-4" />}
             label="جديدة"
-            value={jobs.filter((j) => j.status === "new").length}
+            value={jobs.filter((j) => j.status === "pending").length}
           />
           <KPI icon={<CheckCircle2 className="h-4 w-4" />} label="مقبولة" value={accepted.length} />
           <KPI icon={<TrendingUp className="h-4 w-4" />} label="منجزة" value={done.length} />
@@ -149,60 +184,110 @@ function Dashboard() {
         </Link>
 
         <h2 className="mt-7 text-sm font-bold">طلبات واردة</h2>
-        <ul className="mt-3 space-y-3">
-          {jobs
-            .filter((j) => j.status !== "done")
-            .map((j) => (
-              <li key={j.id} className="card-gold rounded-2xl p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-bold">{j.client}</p>
-                    <p className="text-xs text-[color:var(--gold)]">{j.category}</p>
-                    <p className="text-xs text-muted-foreground mt-1">📍 {j.address}</p>
-                  </div>
-                  <p className="text-sm font-black gold-text">
-                    {j.price.toLocaleString("ar-DZ")} دج
-                  </p>
-                </div>
 
-                {j.status === "new" && (
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => act(j.id, "declined")}
-                      className="py-2.5 rounded-xl bg-card border border-white/10 text-sm"
-                    >
-                      رفض
-                    </button>
-                    <button
-                      onClick={() => act(j.id, "accepted")}
-                      className="py-2.5 rounded-xl gold-gradient text-black text-sm font-bold"
-                    >
-                      قبول
-                    </button>
-                  </div>
-                )}
-
-                {j.status === "accepted" && (
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <button className="py-2.5 rounded-xl bg-card border border-white/10 text-sm">
-                      📷 رفع صور
-                    </button>
-                    <button
-                      onClick={() => act(j.id, "done")}
-                      className="py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-sm font-bold"
-                    >
-                      إنهاء العمل
-                    </button>
-                  </div>
-                )}
-
-                {j.status === "declined" && (
-                  <p className="mt-2 text-xs text-red-300">تم رفض هذا الطلب.</p>
-                )}
+        {loading ? (
+          <ul className="mt-3 space-y-3">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="card-gold rounded-2xl p-4 space-y-3">
+                <Skeleton className="h-5 w-1/2" />
+                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-10 w-full" />
               </li>
             ))}
-        </ul>
+          </ul>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {jobs
+              .filter((j) => j.status !== "completed" && j.status !== "cancelled")
+              .map((j) => (
+                <li key={j.id} className="card-gold rounded-2xl p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-bold">طلب جديد</p>
+                      <p className="text-xs text-[color:var(--gold)]">{j.category}</p>
+                      <p className="text-xs text-muted-foreground mt-1">📍 {j.address}</p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{j.description}</p>
+                    </div>
+                    {j.price && (
+                      <p className="text-sm font-black gold-text">
+                        {j.price.toLocaleString("ar-DZ")} دج
+                      </p>
+                    )}
+                  </div>
+
+                  {j.status === "pending" && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => declineJob(j.id)}
+                        className="py-2.5 rounded-xl bg-card border border-white/10 text-sm"
+                      >
+                        رفض
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPriceModalId(j.id);
+                          setPriceInput("");
+                        }}
+                        className="py-2.5 rounded-xl gold-gradient text-black text-sm font-bold"
+                      >
+                        قبول
+                      </button>
+                    </div>
+                  )}
+
+                  {j.status === "accepted" && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button className="py-2.5 rounded-xl bg-card border border-white/10 text-sm">
+                        📷 رفع صور
+                      </button>
+                      <button
+                        onClick={() => completeJob(j.id)}
+                        className="py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-sm font-bold"
+                      >
+                        إنهاء العمل
+                      </button>
+                    </div>
+                  )}
+                </li>
+              ))}
+          </ul>
+        )}
       </div>
+
+      {priceModalId && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-5">
+          <form
+            onSubmit={submitPrice}
+            className="w-full max-w-md card-gold rounded-3xl p-5 bg-background"
+          >
+            <p className="text-sm font-bold">حدد السعر التقديري</p>
+            <p className="text-xs text-muted-foreground mt-1">أدخل السعر بالدينار الجزائري</p>
+            <input
+              type="number"
+              min="1"
+              autoFocus
+              value={priceInput}
+              onChange={(e) => setPriceInput(e.target.value)}
+              placeholder="مثال: 3000"
+              className="mt-4 w-full bg-card border border-white/10 rounded-xl px-4 py-3 text-foreground outline-none focus:border-[color:var(--gold)]"
+              required
+            />
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPriceModalId(null)}
+                className="py-2.5 rounded-xl bg-card border border-white/10 text-sm"
+              >
+                إلغاء
+              </button>
+              <button className="py-2.5 rounded-xl gold-gradient text-black text-sm font-bold">
+                تأكيد القبول
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <BottomNav />
       <FloatingContacts />
     </main>
