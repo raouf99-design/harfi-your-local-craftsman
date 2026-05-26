@@ -128,7 +128,31 @@ function AuthPage() {
           </p>
         </div>
 
-        {step === "phone" ? (
+        {step === "media" ? (
+          <div className="mt-8 space-y-5">
+            {(() => {
+              const s = getSession();
+              if (!s?.user.id) return <p className="text-xs text-red-400">جلسة غير صالحة</p>;
+              return (
+                <PortfolioManager userId={s.user.id} currentAvatarUrl={null} />
+              );
+            })()}
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/dashboard" })}
+              className="btn-gold w-full"
+            >
+              متابعة إلى لوحة التحكم
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/dashboard" })}
+              className="w-full text-sm text-muted-foreground py-2"
+            >
+              تخطي الآن
+            </button>
+          </div>
+        ) : step === "phone" ? (
           <form onSubmit={sendOtp} className="mt-8 space-y-4">
             {!isCraftsman && (
               <Field label="الاسم الكامل">
