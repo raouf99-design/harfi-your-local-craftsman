@@ -27,7 +27,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isCraftsman = role === "craftsman";
+  const isCraftsman = validRole === "craftsman";
 
   // Normalize to E.164-ish Algerian format: +2135XXXXXXXX
   const normalizedPhone = () => {
@@ -48,7 +48,7 @@ function AuthPage() {
       // Real server-side OTP send. Backend MUST generate, store, and SMS the code.
       await api("/auth/send-otp", {
         method: "POST",
-        body: JSON.stringify({ phone: normalizedPhone(), role }),
+        body: JSON.stringify({ phone: normalizedPhone(), role: validRole }),
       });
       setStep("otp");
     } catch (err) {
