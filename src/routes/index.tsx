@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { useEffect } from "react";
 import { getSession } from "@/lib/api";
+import logo from "@/assets/harfi-logo.png";
 
 export const Route = createFileRoute("/")({
   component: Onboarding,
@@ -25,8 +26,8 @@ function Onboarding() {
       <div className="mx-auto max-w-md min-h-screen flex flex-col px-6 pt-14 pb-10">
         {/* Brand */}
         <div className="flex flex-col items-center text-center">
-          <div className="h-20 w-20 rounded-3xl gold-gradient flex items-center justify-center text-black text-4xl font-black shadow-xl glow-gold">
-            ح
+          <div className="h-24 w-24 rounded-full overflow-hidden ring-4 ring-[color:var(--gold)] shadow-xl glow-gold">
+            <img src={logo} alt="حرفي" className="h-full w-full object-cover" />
           </div>
           <h1 className="mt-5 text-5xl font-black tracking-tight">
             <span className="gold-text">حرفي</span>
@@ -44,11 +45,6 @@ function Onboarding() {
             <h2 className="mt-2 text-2xl font-bold leading-snug">
               ابحث، اطلب، وأنجز<br /> أعمالك بثقة
             </h2>
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2 items-center"><span className="text-[color:var(--gold)]">●</span> حرفيون موثوقون في 58 ولاية</li>
-              <li className="flex gap-2 items-center"><span className="text-[color:var(--gold)]">●</span> تتبع طلبك لحظة بلحظة</li>
-              <li className="flex gap-2 items-center"><span className="text-[color:var(--gold)]">●</span> تقييم وضمان الجودة</li>
-            </ul>
           </div>
         </div>
 
@@ -61,7 +57,7 @@ function Onboarding() {
               className="group relative rounded-2xl gold-gradient text-black font-bold py-4 px-5 flex items-center justify-between shadow-lg glow-gold"
             >
               <div className="text-right">
-                <div className="text-base">أنا عميل</div>
+                <div className="text-base flex items-center gap-2 justify-end">🔍 أنا عميل</div>
                 <div className="text-xs opacity-70 font-medium">أبحث عن حرفي لإنجاز عمل</div>
               </div>
               <span className="h-10 w-10 rounded-xl bg-black/15 flex items-center justify-center text-xl">←</span>
@@ -73,7 +69,7 @@ function Onboarding() {
               className="group relative rounded-2xl bg-card border border-[color:var(--gold)]/30 text-foreground font-bold py-4 px-5 flex items-center justify-between"
             >
               <div className="text-right">
-                <div className="text-base gold-text">أنا حرفي</div>
+                <div className="text-base gold-text flex items-center gap-2 justify-end">🔧 أنا حرفي</div>
                 <div className="text-xs text-muted-foreground font-medium">أقدم خدمات حرفية وأبحث عن عملاء</div>
               </div>
               <span className="h-10 w-10 rounded-xl bg-[color:var(--gold)]/10 flex items-center justify-center text-xl text-[color:var(--gold)]">←</span>
