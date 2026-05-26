@@ -1,6 +1,9 @@
 import { createFileRoute, useNavigate, Link, Navigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { api, ApiError, setSession, type Role, type User } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { completePhoneAuth } from "@/lib/auth.functions";
+import { setSession, type Role } from "@/lib/api";
 
 const ALLOWED_ROLES: readonly Role[] = ["customer", "craftsman"] as const;
 
@@ -16,6 +19,7 @@ function AuthPage() {
   }
   const validRole = role as Role;
   const navigate = useNavigate();
+  const completeAuth = useServerFn(completePhoneAuth);
 
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
@@ -45,18 +49,19 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      // Real server-side OTP send. Backend MUST generate, store, and SMS the code.
-      await api("/auth/send-otp", {
-        method: "POST",
-        body: JSON.stringify({ phone: normalizedPhone(), role: validRole }),
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: normalizedPhone(),
+        options: {
+          channel: "sms",
+          shouldCreateUser: true,
+          data: { role: validRole },
+        },
       });
+      if (error) throw error;
       setStep("otp");
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        setError("خدمة التحقق غير متاحة حالياً، يرجى المحاولة لاحقاً");
-      } else {
-        setError(err instanceof Error ? err.message : "تعذّر إرسال الرمز");
-      }
+      console.error("[auth] OTP send failed", err);
+      setError("تعذّر إرسال الرمز. تأكد من الرقم وحاول مرة أخرى");
     } finally {
       setLoading(false);
     }
@@ -71,30 +76,26 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      // Backend validates OTP and returns a signed token + user (role is server-issued).
-      const res = await api<{ token: string; user: User }>("/auth/verify-otp", {
-        method: "POST",
-        body: JSON.stringify({
-          phone: normalizedPhone(),
-          code: otp,
-          // Profile fields sent only on signup; the server decides what to persist
-          // and which role to grant. Never trust the client-supplied role.
-          ...(isCraftsman
-            ? { name, profession, wilaya, commune }
-            : { name }),
-        }),
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: normalizedPhone(),
+        token: otp,
+        type: "sms",
       });
-      if (!res?.token || !res?.user) {
-        throw new Error("استجابة غير صالحة من الخادم");
-      }
-      setSession({ user: res.user, token: res.token });
+      if (error || !data.session) throw error ?? new Error("تعذّر إنشاء الجلسة");
+
+      const res = await completeAuth({
+        data: {
+          phone: normalizedPhone(),
+          role: validRole,
+          ...(isCraftsman ? { name, profession, wilaya, commune } : { name }),
+        },
+      });
+
+      setSession({ user: res.user, token: data.session.access_token });
       navigate({ to: res.user.role === "craftsman" ? "/dashboard" : "/home" });
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        setError("خدمة التحقق غير متاحة حالياً، يرجى المحاولة لاحقاً");
-      } else {
-        setError(err instanceof Error ? err.message : "رمز التحقق غير صحيح");
-      }
+      console.error("[auth] OTP verify failed", err);
+      setError("رمز التحقق غير صحيح أو منتهي الصلاحية");
     } finally {
       setLoading(false);
     }
