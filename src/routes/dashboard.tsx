@@ -148,7 +148,7 @@ function Dashboard() {
     );
   }
 
-  const accepted = jobs.filter((j) => j.status === "accepted");
+  const accepted = jobs.filter((j) => j.status === "accepted" || j.status === "in_progress");
   const done = jobs.filter((j) => j.status === "completed");
   const earnings = done.reduce((s, j) => s + (j.price ?? 0), 0);
 
