@@ -168,7 +168,17 @@ function ProfilePage() {
             {error && <p className="text-xs text-red-400 text-center">{error}</p>}
             {savedOk && (
               <p className="text-xs text-emerald-400 text-center">تم حفظ التعديلات ✓</p>
-            )}
+        )}
+
+        {!loading && isCraftsman && session.user.id && (
+          <div className="mt-6">
+            <PortfolioManager
+              userId={session.user.id}
+              currentAvatarUrl={avatarUrl}
+              onAvatarChange={(u) => setAvatarUrl(u)}
+            />
+          </div>
+        )}
 
             <button disabled={saving} className="btn-gold w-full inline-flex items-center justify-center gap-2">
               <Save className="h-4 w-4" /> {saving ? "جارٍ الحفظ..." : "حفظ التعديلات"}
