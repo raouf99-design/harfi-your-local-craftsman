@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { CATEGORIES } from "@/lib/categories";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin } from "lucide-react";
+import { getCraftsmenStats } from "@/lib/service-requests.functions";
+import { MapPin, Star } from "lucide-react";
 
 export const Route = createFileRoute("/category/$id")({
   component: CategoryPage,
@@ -34,8 +36,10 @@ function CategoryPage() {
   const { id } = Route.useParams();
   const cat = CATEGORIES.find((c) => c.id === id) ?? CATEGORIES[0];
   const profession = CATEGORY_TO_PROFESSION[id] ?? cat.name;
+  const statsFn = useServerFn(getCraftsmenStats);
 
   const [list, setList] = useState<CraftsmanProfile[]>([]);
+  const [stats, setStats] = useState<Record<string, { count: number; rating: number | null }>>({});
   const [loading, setLoading] = useState(true);
   const [wilayaFilter, setWilayaFilter] = useState("الكل");
 
@@ -50,13 +54,23 @@ function CategoryPage() {
         .eq("available", true);
       if (!active) return;
       if (error) console.error("[category] fetch failed", error);
-      setList((data ?? []) as CraftsmanProfile[]);
+      const items = (data ?? []) as CraftsmanProfile[];
+      setList(items);
       setLoading(false);
+      const ids = items.map((c) => c.user_id);
+      if (ids.length) {
+        try {
+          const res = await statsFn({ data: { userIds: ids } });
+          if (active) setStats(res.stats ?? {});
+        } catch (e) {
+          console.error("[category] stats failed", e);
+        }
+      }
     })();
     return () => {
       active = false;
     };
-  }, [profession]);
+  }, [profession, statsFn]);
 
   const wilayas = useMemo(() => {
     const set = new Set<string>();
@@ -125,6 +139,7 @@ function CategoryPage() {
           <ul className="mt-3 space-y-3">
             {filtered.map((c) => {
               const displayName = c.name || "حرفي";
+              const s = stats[c.user_id];
               return (
                 <li key={c.user_id}>
                   <Link
@@ -137,14 +152,28 @@ function CategoryPage() {
                       {displayName.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold">{displayName}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-bold truncate">{displayName}</p>
+                        {s?.rating != null && (
+                          <span className="text-[11px] flex items-center gap-0.5 text-[color:var(--gold)] font-bold shrink-0">
+                            <Star className="h-3 w-3 fill-current" /> {s.rating}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-[color:var(--gold)] mt-0.5">{c.profession}</p>
-                      {(c.wilaya || c.commune) && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                          <MapPin className="h-3 w-3" /> {c.wilaya}
-                          {c.commune ? ` · ${c.commune}` : ""}
-                        </p>
-                      )}
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        {(c.wilaya || c.commune) ? (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                            <MapPin className="h-3 w-3 shrink-0" /> {c.wilaya}
+                            {c.commune ? ` · ${c.commune}` : ""}
+                          </p>
+                        ) : <span />}
+                        {s?.count ? (
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {s.count} عمل
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </Link>
                 </li>

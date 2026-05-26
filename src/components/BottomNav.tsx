@@ -6,14 +6,14 @@ import { getSession, type Session } from "@/lib/api";
 const CUSTOMER_ITEMS = [
   { to: "/home", label: "الرئيسية", icon: Home },
   { to: "/requests", label: "طلباتي", icon: ClipboardList },
-  { to: "/about", label: "من نحن", icon: User },
+  { to: "/profile", label: "حسابي", icon: User },
 ] as const;
 
 const CRAFTSMAN_ITEMS = [
   { to: "/home", label: "الرئيسية", icon: Home },
   { to: "/dashboard", label: "لوحتي", icon: Briefcase },
   { to: "/earnings", label: "أرباحي", icon: Wallet },
-  { to: "/about", label: "من نحن", icon: User },
+  { to: "/profile", label: "حسابي", icon: User },
 ] as const;
 
 export function BottomNav() {
@@ -33,7 +33,7 @@ export function BottomNav() {
     <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-white/10 bg-black/80 backdrop-blur-xl">
       <div className={`mx-auto max-w-md grid ${cols}`}>
         {items.map((it) => {
-          const active = location.pathname.startsWith(it.to);
+          const active = location.pathname === it.to || location.pathname.startsWith(it.to + "/");
           const Icon = it.icon;
           return (
             <Link

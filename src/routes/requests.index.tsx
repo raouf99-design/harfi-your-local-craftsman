@@ -12,24 +12,34 @@ export const Route = createFileRoute("/requests/")({
   component: RequestsList,
 });
 
+type Status = "pending" | "accepted" | "in_progress" | "completed" | "cancelled";
+
 interface RequestItem {
   id: string;
   craftsman_id: string | null;
   category: string;
   address: string;
   description: string;
-  status: "pending" | "accepted" | "in_progress" | "completed" | "cancelled";
+  status: Status;
+  price: number | null;
   created_at: string;
   rating: number | null;
 }
 
-const STATUS: Record<RequestItem["status"], { label: string; color: string }> = {
+const STATUS: Record<Status, { label: string; color: string }> = {
   pending: { label: "بانتظار الموافقة", color: "bg-yellow-500/20 text-yellow-300" },
   accepted: { label: "مقبول", color: "bg-blue-500/20 text-blue-300" },
   in_progress: { label: "قيد التنفيذ", color: "bg-[color:var(--gold)]/20 text-[color:var(--gold)]" },
   completed: { label: "مكتمل", color: "bg-emerald-500/20 text-emerald-300" },
   cancelled: { label: "ملغى", color: "bg-red-500/20 text-red-300" },
 };
+
+const FILTERS: { id: "all" | "active" | "completed" | "cancelled"; label: string }[] = [
+  { id: "all", label: "الكل" },
+  { id: "active", label: "نشطة" },
+  { id: "completed", label: "مكتملة" },
+  { id: "cancelled", label: "ملغاة" },
+];
 
 function RequestsList() {
   const navigate = useNavigate();
@@ -38,6 +48,7 @@ function RequestsList() {
   const [authed, setAuthed] = useState(false);
   const [items, setItems] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<typeof FILTERS[number]["id"]>("all");
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -72,11 +83,34 @@ function RequestsList() {
 
   if (!authed) return null;
 
+  const visible = items.filter((r) => {
+    if (filter === "all") return true;
+    if (filter === "completed") return r.status === "completed";
+    if (filter === "cancelled") return r.status === "cancelled";
+    return r.status === "pending" || r.status === "accepted" || r.status === "in_progress";
+  });
+
   return (
     <main className="min-h-screen bg-background pb-24">
       <div className="mx-auto max-w-md px-5 pt-10">
         <h1 className="text-2xl font-black">طلباتي</h1>
         <p className="mt-1 text-sm text-muted-foreground">تابع جميع طلباتك السابقة والحالية</p>
+
+        <div className="mt-4 flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-none">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`text-xs px-3.5 py-2 rounded-full border whitespace-nowrap ${
+                filter === f.id
+                  ? "bg-[color:var(--gold)] text-black border-[color:var(--gold)] font-bold"
+                  : "bg-card text-muted-foreground border-white/10"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
         {loading ? (
           <ul className="mt-5 space-y-3">
@@ -88,7 +122,7 @@ function RequestsList() {
               </li>
             ))}
           </ul>
-        ) : items.length === 0 ? (
+        ) : visible.length === 0 ? (
           <div className="mt-10 card-gold rounded-3xl p-8 text-center">
             <div className="text-5xl">📭</div>
             <p className="mt-3 font-bold">لا توجد طلبات بعد</p>
@@ -99,24 +133,31 @@ function RequestsList() {
           </div>
         ) : (
           <ul className="mt-5 space-y-3">
-            {items.map((r) => {
+            {visible.map((r) => {
               const st = STATUS[r.status];
               return (
                 <li key={r.id} className="card-gold rounded-2xl p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
+                  <Link to="/requests/$id" params={{ id: r.id }} className="block">
+                    <div className="flex items-start justify-between gap-2">
                       <p className="font-bold">{r.category}</p>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${st.color}`}>
+                        {st.label}
+                      </span>
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${st.color}`}>{st.label}</span>
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">📍 {r.address}</p>
-                  <p className="mt-1 text-sm line-clamp-2">{r.description}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">📍 {r.address}</p>
+                    <p className="mt-1 text-sm line-clamp-2">{r.description}</p>
 
-                  <div className="mt-3 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">
-                      {new Date(r.created_at).toLocaleDateString("ar-DZ")}
-                    </span>
-                  </div>
+                    <div className="mt-3 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        {new Date(r.created_at).toLocaleDateString("ar-DZ")}
+                      </span>
+                      {r.price ? (
+                        <span className="gold-text font-black">
+                          {r.price.toLocaleString("ar-DZ")} دج
+                        </span>
+                      ) : null}
+                    </div>
+                  </Link>
 
                   {r.status === "completed" && (
                     <div className="mt-3 pt-3 border-t border-white/10">
@@ -124,7 +165,13 @@ function RequestsList() {
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((n) => (
                           <button key={n} onClick={() => rate(r.id, n)}>
-                            <Star className={`h-5 w-5 ${(r.rating ?? 0) >= n ? "text-[color:var(--gold)] fill-current" : "text-muted-foreground"}`} />
+                            <Star
+                              className={`h-5 w-5 ${
+                                (r.rating ?? 0) >= n
+                                  ? "text-[color:var(--gold)] fill-current"
+                                  : "text-muted-foreground"
+                              }`}
+                            />
                           </button>
                         ))}
                       </div>

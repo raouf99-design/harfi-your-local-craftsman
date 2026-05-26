@@ -4,11 +4,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Phone, MessageCircle } from "lucide-react";
+import { MapPin, Phone, MessageCircle, Star } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/api";
 import { getCraftsmanPhone } from "@/lib/profile.functions";
+import { getCraftsmenStats } from "@/lib/service-requests.functions";
 
 const searchSchema = z.object({
   cat: z.string().optional(),
@@ -34,10 +35,12 @@ function CraftsmanProfile() {
   const { id } = Route.useParams();
   const { cat } = Route.useSearch();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [stats, setStats] = useState<{ count: number; rating: number | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const authed = !!getSession();
   const fetchPhone = useServerFn(getCraftsmanPhone);
+  const fetchStats = useServerFn(getCraftsmenStats);
 
   useEffect(() => {
     let active = true;
@@ -63,6 +66,12 @@ function CraftsmanProfile() {
           console.error("[craftsman] phone fetch failed", e);
         }
       }
+      try {
+        const res = await fetchStats({ data: { userIds: [id] } });
+        if (active) setStats(res.stats?.[id] ?? null);
+      } catch (e) {
+        console.error("[craftsman] stats failed", e);
+      }
       if (!active) return;
       setProfile({ ...(data as Profile), phone });
       setLoading(false);
@@ -70,7 +79,7 @@ function CraftsmanProfile() {
     return () => {
       active = false;
     };
-  }, [id, authed, fetchPhone]);
+  }, [id, authed, fetchPhone, fetchStats]);
 
   if (loading) {
     return (
@@ -153,6 +162,22 @@ function CraftsmanProfile() {
             </p>
           </div>
         </div>
+
+        {stats && (stats.rating != null || stats.count > 0) && (
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="card-gold rounded-2xl p-4 text-center">
+              <div className="text-[color:var(--gold)] flex justify-center"><Star className="h-4 w-4 fill-current" /></div>
+              <p className="mt-1 text-2xl font-black">
+                {stats.rating != null ? stats.rating : "—"}
+              </p>
+              <p className="text-[10px] text-muted-foreground">متوسط التقييم</p>
+            </div>
+            <div className="card-gold rounded-2xl p-4 text-center">
+              <p className="text-2xl font-black">{stats.count}</p>
+              <p className="text-[10px] text-muted-foreground">عمل منجز</p>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 card-gold rounded-2xl p-4">
           <h2 className="text-sm font-bold mb-2">نبذة</h2>
