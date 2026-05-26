@@ -8,6 +8,8 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { PWARegister } from "@/components/PWARegister";
+import { GoogleAuthBridge } from "@/components/GoogleAuthBridge";
+import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 
@@ -129,6 +131,8 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <PWARegister />
+      <GoogleAuthBridge />
+      <Toaster position="top-center" richColors />
       <Outlet />
     </QueryClientProvider>
   );
