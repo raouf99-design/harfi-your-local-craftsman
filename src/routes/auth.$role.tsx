@@ -1,9 +1,6 @@
 import { createFileRoute, useNavigate, Link, Navigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { completePhoneAuth } from "@/lib/auth.functions";
-import { setSession, type Role } from "@/lib/api";
+import { api, setSession, ApiError, type Role, type User } from "@/lib/api";
 
 const ALLOWED_ROLES: readonly Role[] = ["customer", "craftsman"] as const;
 
@@ -16,7 +13,6 @@ function AuthPage() {
   const isAllowedRole = ALLOWED_ROLES.includes(role as Role);
   const validRole: Role = isAllowedRole ? (role as Role) : "customer";
   const navigate = useNavigate();
-  const completeAuth = useServerFn(completePhoneAuth);
 
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
@@ -30,12 +26,10 @@ function AuthPage() {
 
   const isCraftsman = validRole === "craftsman";
 
-  // Runtime allow-list: never forward an arbitrary role param to the backend.
   if (!isAllowedRole) {
     return <Navigate to="/" />;
   }
 
-  // Normalize to E.164-ish Algerian format: +2135XXXXXXXX
   const normalizedPhone = () => {
     const digits = phone.replace(/\D/g, "");
     const local = digits.startsWith("213") ? digits.slice(3) : digits.replace(/^0/, "");
@@ -51,19 +45,18 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: normalizedPhone(),
-        options: {
-          channel: "sms",
-          shouldCreateUser: true,
-          data: { role: validRole },
-        },
+      await api("/auth/send-otp", {
+        method: "POST",
+        body: JSON.stringify({ phone: normalizedPhone(), role: validRole }),
       });
-      if (error) throw error;
       setStep("otp");
     } catch (err) {
       console.error("[auth] OTP send failed", err);
-      setError("تعذّر إرسال الرمز. تأكد من الرقم وحاول مرة أخرى");
+      if (err instanceof ApiError && err.status === 404) {
+        setError("خدمة التحقق غير متاحة حالياً، يرجى المحاولة لاحقاً");
+      } else {
+        setError("تعذّر إرسال الرمز. تأكد من الرقم وحاول مرة أخرى");
+      }
     } finally {
       setLoading(false);
     }
@@ -78,22 +71,18 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
+      const payload = {
         phone: normalizedPhone(),
-        token: otp,
-        type: "sms",
-      });
-      if (error || !data.session) throw error ?? new Error("تعذّر إنشاء الجلسة");
-
-      const res = await completeAuth({
-        data: {
-          phone: normalizedPhone(),
-          role: validRole,
-          ...(isCraftsman ? { name, profession, wilaya, commune } : { name }),
-        },
+        code: otp,
+        role: validRole,
+        ...(isCraftsman ? { name, profession, wilaya, commune } : { name }),
+      };
+      const res = await api<{ user: User; token?: string }>("/auth/verify-otp", {
+        method: "POST",
+        body: JSON.stringify(payload),
       });
 
-      setSession({ user: res.user, token: data.session.access_token });
+      setSession({ user: res.user, token: res.token });
       navigate({ to: res.user.role === "craftsman" ? "/dashboard" : "/home" });
     } catch (err) {
       console.error("[auth] OTP verify failed", err);
