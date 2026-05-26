@@ -38,7 +38,7 @@ export const listMyRequests = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await supabaseAdmin
       .from("service_requests")
-      .select("id, craftsman_id, category, address, description, status, created_at, rating")
+      .select("id, craftsman_id, category, address, description, status, price, created_at, rating")
       .eq("customer_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) {
@@ -70,6 +70,74 @@ export const rateRequest = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------- Customer: cancel a pending request ----------
+const IdSchema = z.object({ id: z.string().uuid() });
+
+export const cancelRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => IdSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await supabaseAdmin
+      .from("service_requests")
+      .update({ status: "cancelled" })
+      .eq("id", data.id)
+      .eq("customer_id", context.userId)
+      .in("status", ["pending", "accepted"]);
+    if (error) {
+      console.error("[service-requests] cancel failed", error);
+      throw new Error("تعذّر إلغاء الطلب");
+    }
+    return { ok: true };
+  });
+
+// ---------- Shared: detail of a single request (visible to its customer or craftsman) ----------
+export const getRequestDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => IdSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await supabaseAdmin
+      .from("service_requests")
+      .select("id, customer_id, craftsman_id, category, address, description, status, price, created_at, rating")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) {
+      console.error("[service-requests] detail failed", error);
+      throw new Error("تعذّر تحميل الطلب");
+    }
+    if (!row) throw new Error("الطلب غير موجود");
+    const isCustomer = row.customer_id === context.userId;
+    const isCraftsman = row.craftsman_id === context.userId;
+    if (!isCustomer && !isCraftsman && row.status !== "pending") {
+      throw new Error("غير مصرّح");
+    }
+
+    const ids = [row.customer_id, row.craftsman_id].filter(Boolean) as string[];
+    const { data: profs } = ids.length
+      ? await supabaseAdmin.from("profiles").select("user_id, name, phone, profession, wilaya, commune").in("user_id", ids)
+      : { data: [] };
+    const map = Object.fromEntries((profs ?? []).map((p) => [p.user_id, p]));
+    const customer = map[row.customer_id] ?? null;
+    const craftsman = row.craftsman_id ? map[row.craftsman_id] ?? null : null;
+
+    return {
+      request: row,
+      // Only expose the counter-party's phone to the legitimate party.
+      customer: customer
+        ? { name: customer.name, phone: isCraftsman ? customer.phone : null }
+        : null,
+      craftsman: craftsman
+        ? {
+            name: craftsman.name,
+            phone: isCustomer ? craftsman.phone : null,
+            profession: craftsman.profession,
+            wilaya: craftsman.wilaya,
+            commune: craftsman.commune,
+          }
+        : null,
+      role: isCustomer ? "customer" : isCraftsman ? "craftsman" : "viewer",
+    };
+  });
+
 // ---------- Craftsman: list jobs (pending or mine) ----------
 export const listJobsForCraftsman = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -83,7 +151,27 @@ export const listJobsForCraftsman = createServerFn({ method: "GET" })
       console.error("[service-requests] list jobs failed", error);
       throw new Error("تعذّر تحميل الطلبات");
     }
-    return { items: data ?? [] };
+    const rows = data ?? [];
+    const ids = Array.from(new Set(rows.map((r) => r.customer_id)));
+    let nameMap: Record<string, { name: string | null; phone: string | null }> = {};
+    if (ids.length) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id, name, phone")
+        .in("user_id", ids);
+      nameMap = Object.fromEntries(
+        (profs ?? []).map((p) => [p.user_id, { name: p.name, phone: p.phone }]),
+      );
+    }
+    return {
+      items: rows.map((r) => ({
+        ...r,
+        customer_name: nameMap[r.customer_id]?.name ?? null,
+        // Phone exposed only when the craftsman is assigned to the job.
+        customer_phone:
+          r.craftsman_id === context.userId ? nameMap[r.customer_id]?.phone ?? null : null,
+      })),
+    };
   });
 
 // ---------- Craftsman: accept a pending job ----------
@@ -109,8 +197,6 @@ export const acceptJob = createServerFn({ method: "POST" })
   });
 
 // ---------- Craftsman: decline a pending job ----------
-const IdSchema = z.object({ id: z.string().uuid() });
-
 export const declineJob = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => IdSchema.parse(input))
@@ -123,6 +209,24 @@ export const declineJob = createServerFn({ method: "POST" })
     if (error) {
       console.error("[service-requests] decline failed", error);
       throw new Error("تعذّر رفض الطلب");
+    }
+    return { ok: true };
+  });
+
+// ---------- Craftsman: start a job (accepted -> in_progress) ----------
+export const startJob = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => IdSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await supabaseAdmin
+      .from("service_requests")
+      .update({ status: "in_progress" })
+      .eq("id", data.id)
+      .eq("craftsman_id", context.userId)
+      .eq("status", "accepted");
+    if (error) {
+      console.error("[service-requests] start failed", error);
+      throw new Error("تعذّر بدء العمل");
     }
     return { ok: true };
   });
@@ -173,5 +277,38 @@ export const listEarnings = createServerFn({ method: "GET" })
     };
   });
 
-// Suppress unused-var lint for shared schema export.
+// ---------- Public: stats (rating avg + completed count) for a set of craftsmen ----------
+const StatsSchema = z.object({ userIds: z.array(z.string().uuid()).min(1).max(100) });
+
+export const getCraftsmenStats = createServerFn({ method: "POST" })
+  .inputValidator((input) => StatsSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { data: rows, error } = await supabaseAdmin
+      .from("service_requests")
+      .select("craftsman_id, rating, status")
+      .in("craftsman_id", data.userIds)
+      .eq("status", "completed");
+    if (error) {
+      console.error("[service-requests] stats failed", error);
+      return { stats: {} as Record<string, { count: number; rating: number | null }> };
+    }
+    const acc: Record<string, { count: number; ratings: number[] }> = {};
+    for (const r of rows ?? []) {
+      if (!r.craftsman_id) continue;
+      const a = (acc[r.craftsman_id] ||= { count: 0, ratings: [] });
+      a.count += 1;
+      if (typeof r.rating === "number") a.ratings.push(r.rating);
+    }
+    const stats: Record<string, { count: number; rating: number | null }> = {};
+    for (const [k, v] of Object.entries(acc)) {
+      stats[k] = {
+        count: v.count,
+        rating: v.ratings.length
+          ? Math.round((v.ratings.reduce((s, n) => s + n, 0) / v.ratings.length) * 10) / 10
+          : null,
+      };
+    }
+    return { stats };
+  });
+
 export type RequestStatus = z.infer<typeof StatusEnum>;
