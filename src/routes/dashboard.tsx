@@ -98,6 +98,15 @@ function Dashboard() {
     }
   };
 
+  const startJob = async (id: string) => {
+    try {
+      await startFn({ data: { id } });
+      fetchJobs();
+    } catch (err) {
+      console.error("[dashboard] start failed", err);
+    }
+  };
+
   const completeJob = async (id: string) => {
     try {
       await completeFn({ data: { id } });
