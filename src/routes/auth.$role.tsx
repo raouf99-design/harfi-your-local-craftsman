@@ -1,14 +1,22 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { api, setSession, type Role, type User } from "@/lib/api";
+
+const ALLOWED_ROLES: readonly Role[] = ["customer", "craftsman"] as const;
 
 export const Route = createFileRoute("/auth/$role")({
   component: AuthPage,
 });
 
 function AuthPage() {
-  const { role } = Route.useParams() as { role: Role };
+  const { role } = Route.useParams() as { role: string };
+  // Runtime allow-list: never forward an arbitrary role param to the backend.
+  if (!ALLOWED_ROLES.includes(role as Role)) {
+    return <Navigate to="/" />;
+  }
+  const validRole = role as Role;
   const navigate = useNavigate();
+
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -19,7 +27,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isCraftsman = role === "craftsman";
+  const isCraftsman = validRole === "craftsman";
 
   // Normalize to E.164-ish Algerian format: +2135XXXXXXXX
   const normalizedPhone = () => {
@@ -40,7 +48,7 @@ function AuthPage() {
       // Real server-side OTP send. Backend MUST generate, store, and SMS the code.
       await api("/auth/send-otp", {
         method: "POST",
-        body: JSON.stringify({ phone: normalizedPhone(), role }),
+        body: JSON.stringify({ phone: normalizedPhone(), role: validRole }),
       });
       setStep("otp");
     } catch (err) {
