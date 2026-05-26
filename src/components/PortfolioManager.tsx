@@ -93,6 +93,7 @@ export function PortfolioManager({ userId, currentAvatarUrl, onAvatarChange }: P
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
+    if (!(await ensureSession())) return;
     setError(null);
     setAvatarBusy(true);
     try {
@@ -103,10 +104,14 @@ export function PortfolioManager({ userId, currentAvatarUrl, onAvatarChange }: P
       if (res.url) {
         setAvatar(res.url);
         onAvatarChange?.(res.url);
+        toast.success("تم تحديث الصورة الشخصية");
       }
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "تعذّر رفع الصورة");
+      if (isAuthError(err)) { await handleAuthFailure(); return; }
+      const msg = err instanceof Error ? err.message : "تعذّر رفع الصورة";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setAvatarBusy(false);
     }
@@ -116,19 +121,28 @@ export function PortfolioManager({ userId, currentAvatarUrl, onAvatarChange }: P
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
     if (!files.length) return;
+    if (!(await ensureSession())) return;
     setError(null);
     setPortBusy(true);
+    let uploaded = 0;
     try {
       for (const f of files) {
         const base64 = await fileToBase64(f);
         const res = await upload({
           data: { kind: "portfolio", mimeType: f.type, base64 },
         });
-        if (res.item) setItems((prev) => [res.item as PortfolioItem, ...prev]);
+        if (res.item) {
+          setItems((prev) => [res.item as PortfolioItem, ...prev]);
+          uploaded++;
+        }
       }
+      if (uploaded > 0) toast.success(`تم رفع ${uploaded} صورة`);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "تعذّر رفع الصور");
+      if (isAuthError(err)) { await handleAuthFailure(); return; }
+      const msg = err instanceof Error ? err.message : "تعذّر رفع الصور";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setPortBusy(false);
     }
@@ -136,12 +150,17 @@ export function PortfolioManager({ userId, currentAvatarUrl, onAvatarChange }: P
 
   const removeItem = async (id: string) => {
     if (!confirm("حذف هذه الصورة؟")) return;
+    if (!(await ensureSession())) return;
     try {
       await del({ data: { id } });
       setItems((prev) => prev.filter((p) => p.id !== id));
+      toast.success("تم حذف الصورة");
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "تعذّر الحذف");
+      if (isAuthError(err)) { await handleAuthFailure(); return; }
+      const msg = err instanceof Error ? err.message : "تعذّر الحذف";
+      setError(msg);
+      toast.error(msg);
     }
   };
 
