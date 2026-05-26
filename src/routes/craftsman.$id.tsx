@@ -154,8 +154,12 @@ function CraftsmanProfile() {
         </Link>
 
         <div className="mt-5 flex items-center gap-4">
-          <div className="h-20 w-20 rounded-3xl gold-gradient text-black font-black flex items-center justify-center text-3xl glow-gold">
-            {displayName.charAt(0)}
+          <div className="h-20 w-20 rounded-3xl overflow-hidden gold-gradient text-black font-black flex items-center justify-center text-3xl glow-gold">
+            {profile.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              displayName.charAt(0)
+            )}
           </div>
           <div>
             <h1 className="text-2xl font-black">{displayName}</h1>
