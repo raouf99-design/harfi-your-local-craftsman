@@ -2,8 +2,30 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createNotification } from "./notifications.server";
 
 const StatusEnum = z.enum(["pending", "accepted", "in_progress", "completed", "cancelled"]);
+
+async function notifyCustomerOfStatus(requestId: string, opts: {
+  type: "request_accepted" | "request_declined" | "request_started" | "request_completed";
+  title: string;
+  body?: string;
+}) {
+  const { data } = await supabaseAdmin
+    .from("service_requests")
+    .select("customer_id, category")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (data?.customer_id) {
+    await createNotification({
+      userId: data.customer_id,
+      type: opts.type,
+      title: opts.title,
+      body: opts.body ?? data.category,
+      requestId,
+    });
+  }
+}
 
 // ---------- Customer: create a request ----------
 const CreateRequestSchema = z.object({
