@@ -30,6 +30,7 @@ function ProfilePage() {
   const [wilaya, setWilaya] = useState("");
   const [commune, setCommune] = useState("");
   const [available, setAvailable] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const s = getSession();
@@ -47,6 +48,7 @@ function ProfilePage() {
         setWilaya(p?.wilaya ?? s.user.wilaya ?? "");
         setCommune(p?.commune ?? s.user.commune ?? "");
         setAvailable(p?.available ?? true);
+        setAvatarUrl(p?.avatar_url ?? null);
       } catch (e) {
         console.error("[profile] load failed", e);
       } finally {
