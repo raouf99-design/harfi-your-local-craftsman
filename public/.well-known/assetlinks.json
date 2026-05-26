@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.harfi.app",
+        "sha256_cert_fingerprints": ["CA:BC:41:BE:4D:25:10:89:0E:78:26:82:CF:34:82:50:C5:5F:3C:A2:DF:CC:84:CC:31:9F:63:1E:F8:30:78:BE"]
+      }
+    }]
