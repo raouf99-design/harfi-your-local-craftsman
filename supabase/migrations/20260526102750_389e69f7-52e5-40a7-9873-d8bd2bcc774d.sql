@@ -1,0 +1,1 @@
+ALTER TABLE public.service_requests DISABLE ROW LEVEL SECURITY;

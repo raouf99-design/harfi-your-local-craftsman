@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { getSession } from "@/lib/api";
-import { supabase } from "@/integrations/supabase/client";
+import { createRequest } from "@/lib/service-requests.functions";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 
@@ -19,42 +20,39 @@ export const Route = createFileRoute("/requests/new")({
 function NewRequest() {
   const { craftsmanId } = Route.useSearch();
   const navigate = useNavigate();
+  const create = useServerFn(createRequest);
   const [authed, setAuthed] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
     const s = getSession();
     if (!s) navigate({ to: "/" });
-    else {
-      setAuthed(true);
-      setUserId(s.user.id);
-    }
+    else setAuthed(true);
   }, [navigate]);
   const [category, setCategory] = useState("سباك");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (!authed || !userId) return null;
+  if (!authed) return null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error: insertError } = await supabase.from("service_requests").insert({
-      customer_id: userId,
-      craftsman_id: craftsmanId ?? null,
-      category,
-      address,
-      description,
-      status: "pending",
-    });
-    if (insertError) {
-      console.error("[requests.new] insert failed", insertError);
+    try {
+      await create({
+        data: {
+          craftsmanId: craftsmanId ?? null,
+          category,
+          address,
+          description,
+        },
+      });
+      navigate({ to: "/requests" });
+    } catch (err) {
+      console.error("[requests.new] insert failed", err);
       setError("تعذّر إرسال الطلب، حاول مرة أخرى");
       setLoading(false);
-      return;
     }
-    navigate({ to: "/requests" });
   };
 
   return (
