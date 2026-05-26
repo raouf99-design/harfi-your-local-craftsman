@@ -69,7 +69,7 @@ function Onboarding() {
               className="group relative rounded-2xl bg-card border border-[color:var(--gold)]/30 text-foreground font-bold py-4 px-5 flex items-center justify-between"
             >
               <div className="text-right">
-                <div className="text-base gold-text">أنا حرفي</div>
+                <div className="text-base gold-text flex items-center gap-2 justify-end">🔧 أنا حرفي</div>
                 <div className="text-xs text-muted-foreground font-medium">أقدم خدمات حرفية وأبحث عن عملاء</div>
               </div>
               <span className="h-10 w-10 rounded-xl bg-[color:var(--gold)]/10 flex items-center justify-center text-xl text-[color:var(--gold)]">←</span>
