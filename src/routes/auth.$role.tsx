@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { setSession, type Role } from "@/lib/api";
+import { api, setSession, type Role, type User } from "@/lib/api";
 
 export const Route = createFileRoute("/auth/$role")({
   component: AuthPage,
@@ -17,44 +17,73 @@ function AuthPage() {
   const [wilaya, setWilaya] = useState("الجزائر");
   const [commune, setCommune] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isCraftsman = role === "craftsman";
 
+  // Normalize to E.164-ish Algerian format: +2135XXXXXXXX
+  const normalizedPhone = () => {
+    const digits = phone.replace(/\D/g, "");
+    const local = digits.startsWith("213") ? digits.slice(3) : digits.replace(/^0/, "");
+    return `+213${local}`;
+  };
+
   const sendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     if (!/^0?[5-7][0-9]{8}$/.test(phone.replace(/\s/g, ""))) {
-      alert("رقم الهاتف غير صحيح");
+      setError("رقم الهاتف غير صحيح");
       return;
     }
     setLoading(true);
-    // Mocked OTP send — backend can be wired here
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // Real server-side OTP send. Backend MUST generate, store, and SMS the code.
+      await api("/auth/send-otp", {
+        method: "POST",
+        body: JSON.stringify({ phone: normalizedPhone(), role }),
+      });
       setStep("otp");
-    }, 600);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذّر إرسال الرمز");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const verify = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     if (otp.length !== 4 && otp.length !== 6) {
-      alert("أدخل رمز التحقق");
+      setError("أدخل رمز التحقق");
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setSession({
-        user: {
-          id: crypto.randomUUID(),
-          phone,
-          role,
-          name: name || (isCraftsman ? "حرفي جديد" : "عميل جديد"),
-          ...(isCraftsman ? { profession, wilaya, commune, available: true } : {}),
-        },
+    try {
+      // Backend validates OTP and returns a signed token + user (role is server-issued).
+      const res = await api<{ token: string; user: User }>("/auth/verify-otp", {
+        method: "POST",
+        body: JSON.stringify({
+          phone: normalizedPhone(),
+          code: otp,
+          // Profile fields sent only on signup; the server decides what to persist
+          // and which role to grant. Never trust the client-supplied role.
+          ...(isCraftsman
+            ? { name, profession, wilaya, commune }
+            : { name }),
+        }),
       });
+      if (!res?.token || !res?.user) {
+        throw new Error("استجابة غير صالحة من الخادم");
+      }
+      setSession({ user: res.user, token: res.token });
+      navigate({ to: res.user.role === "craftsman" ? "/dashboard" : "/home" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "رمز التحقق غير صحيح");
+    } finally {
       setLoading(false);
-      navigate({ to: isCraftsman ? "/dashboard" : "/home" });
-    }, 600);
+    }
   };
+
 
   return (
     <main className="min-h-screen bg-background">
@@ -128,18 +157,20 @@ function AuthPage() {
                 autoFocus
               />
             </Field>
-            <p className="text-xs text-muted-foreground text-center">
-              للتجربة، أدخل أي 4 أرقام
-            </p>
+            {error && <p className="text-xs text-red-400 text-center">{error}</p>}
             <button disabled={loading} className="btn-gold w-full mt-2">
               {loading ? "..." : "تأكيد ومتابعة"}
             </button>
-            <button type="button" onClick={() => setStep("phone")} className="w-full text-sm text-muted-foreground py-2">
+            <button type="button" onClick={() => { setOtp(""); setError(null); setStep("phone"); }} className="w-full text-sm text-muted-foreground py-2">
               تغيير الرقم
             </button>
           </form>
         )}
+        {step === "phone" && error && (
+          <p className="text-xs text-red-400 text-center mt-3">{error}</p>
+        )}
       </div>
+
 
       <style>{`
         .input {

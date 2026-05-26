@@ -48,7 +48,11 @@ function Dashboard() {
   const act = (id: string, status: IncomingJob["status"]) =>
     setJobs((js) => js.map((j) => (j.id === id ? { ...j, status } : j)));
 
-  const isCraftsman = session.user.role === "craftsman";
+  // NOTE: This client-side role check is a UX gate only. Real protection
+  // for craftsman-only data and actions MUST be enforced server-side on
+  // the backend API — the JWT issued by /auth/verify-otp carries the
+  // server-assigned role, and every craftsman endpoint must verify it.
+  const isCraftsman = session.user.role === "craftsman" && !!session.token;
   if (!isCraftsman) {
     return (
       <main className="min-h-screen bg-background pb-24">
@@ -67,6 +71,7 @@ function Dashboard() {
       </main>
     );
   }
+
 
   const accepted = jobs.filter((j) => j.status === "accepted");
   const done = jobs.filter((j) => j.status === "done");
