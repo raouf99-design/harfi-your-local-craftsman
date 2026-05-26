@@ -4,11 +4,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Phone, MessageCircle } from "lucide-react";
+import { MapPin, Phone, MessageCircle, Star } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/api";
 import { getCraftsmanPhone } from "@/lib/profile.functions";
+import { getCraftsmenStats } from "@/lib/service-requests.functions";
 
 const searchSchema = z.object({
   cat: z.string().optional(),
