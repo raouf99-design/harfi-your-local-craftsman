@@ -50,7 +50,7 @@ function CategoryPage() {
     (async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, name, profession, wilaya, commune")
+        .select("user_id, name, profession, wilaya, commune, avatar_url")
         .eq("profession", profession)
         .eq("available", true);
       if (!active) return;
