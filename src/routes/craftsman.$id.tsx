@@ -163,6 +163,22 @@ function CraftsmanProfile() {
           </div>
         </div>
 
+        {stats && (stats.rating != null || stats.count > 0) && (
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="card-gold rounded-2xl p-4 text-center">
+              <div className="text-[color:var(--gold)] flex justify-center"><Star className="h-4 w-4 fill-current" /></div>
+              <p className="mt-1 text-2xl font-black">
+                {stats.rating != null ? stats.rating : "—"}
+              </p>
+              <p className="text-[10px] text-muted-foreground">متوسط التقييم</p>
+            </div>
+            <div className="card-gold rounded-2xl p-4 text-center">
+              <p className="text-2xl font-black">{stats.count}</p>
+              <p className="text-[10px] text-muted-foreground">عمل منجز</p>
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 card-gold rounded-2xl p-4">
           <h2 className="text-sm font-bold mb-2">نبذة</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
