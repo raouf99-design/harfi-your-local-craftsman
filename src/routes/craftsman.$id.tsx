@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/api";
 import { getCraftsmanPhone } from "@/lib/profile.functions";
 import { getCraftsmenStats } from "@/lib/service-requests.functions";
+import { getCraftsmanPortfolio } from "@/lib/portfolio.functions";
 
 const searchSchema = z.object({
   cat: z.string().optional(),
