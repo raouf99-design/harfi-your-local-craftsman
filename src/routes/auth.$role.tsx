@@ -23,6 +23,7 @@ function AuthPage() {
   const [commune, setCommune] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [demoCode, setDemoCode] = useState<string | null>(null);
 
   const isCraftsman = validRole === "craftsman";
 
@@ -45,10 +46,13 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      await api("/auth/send-otp", {
+      const res = await api<{ demo_code?: string; code?: string; otp?: string }>("/auth/send-otp", {
         method: "POST",
         body: JSON.stringify({ phone: normalizedPhone(), role: validRole }),
       });
+      const returnedCode = res.demo_code || res.code || res.otp || null;
+      setDemoCode(returnedCode);
+      if (returnedCode) setOtp(returnedCode);
       setStep("otp");
     } catch (err) {
       console.error("[auth] OTP send failed", err);
@@ -197,6 +201,11 @@ function AuthPage() {
                 autoFocus
               />
             </Field>
+            {demoCode && (
+              <p className="rounded-xl border border-[color:var(--gold)]/40 bg-[color:var(--gold)]/10 px-3 py-2 text-center text-sm font-bold text-[color:var(--gold)]">
+                رمز التحقق: {demoCode}
+              </p>
+            )}
             {error && <p className="text-xs text-red-400 text-center">{error}</p>}
             <button disabled={loading} className="btn-gold w-full mt-2">
               {loading ? "..." : "تأكيد ومتابعة"}
@@ -206,6 +215,7 @@ function AuthPage() {
               onClick={() => {
                 setOtp("");
                 setError(null);
+                setDemoCode(null);
                 setStep("phone");
               }}
               className="w-full text-sm text-muted-foreground py-2"
