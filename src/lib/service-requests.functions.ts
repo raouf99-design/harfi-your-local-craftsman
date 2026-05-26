@@ -139,15 +139,26 @@ export const cancelRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => IdSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await supabaseAdmin
+    const { data: row, error } = await supabaseAdmin
       .from("service_requests")
       .update({ status: "cancelled" })
       .eq("id", data.id)
       .eq("customer_id", context.userId)
-      .in("status", ["pending", "accepted"]);
+      .in("status", ["pending", "accepted"])
+      .select("craftsman_id, category")
+      .maybeSingle();
     if (error) {
       console.error("[service-requests] cancel failed", error);
       throw new Error("تعذّر إلغاء الطلب");
+    }
+    if (row?.craftsman_id) {
+      await createNotification({
+        userId: row.craftsman_id,
+        type: "request_cancelled",
+        title: "أُلغي الطلب من العميل",
+        body: row.category,
+        requestId: data.id,
+      });
     }
     return { ok: true };
   });
