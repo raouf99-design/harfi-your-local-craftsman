@@ -10,9 +10,10 @@ import {
   listJobsForCraftsman,
   acceptJob as acceptJobFn,
   declineJob as declineJobFn,
+  startJob as startJobFn,
   completeJob as completeJobFn,
 } from "@/lib/service-requests.functions";
-import { TrendingUp, Wallet, CheckCircle2, Clock } from "lucide-react";
+import { TrendingUp, Wallet, CheckCircle2, Clock, Phone } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -28,6 +29,8 @@ interface Job {
   status: "pending" | "accepted" | "in_progress" | "completed" | "cancelled";
   price: number | null;
   created_at: string;
+  customer_name?: string | null;
+  customer_phone?: string | null;
 }
 
 function Dashboard() {
