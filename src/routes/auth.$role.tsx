@@ -103,11 +103,12 @@ function AuthPage() {
     }
   };
 
-
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-md px-6 pt-10 pb-20">
-        <Link to="/" className="text-sm text-muted-foreground">→ رجوع</Link>
+        <Link to="/" className="text-sm text-muted-foreground">
+          → رجوع
+        </Link>
 
         <div className="mt-6">
           <p className="text-xs text-[color:var(--gold)] tracking-widest font-bold">
@@ -128,21 +129,52 @@ function AuthPage() {
             {isCraftsman && (
               <>
                 <Field label="الاسم الكامل">
-                  <input value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="مثال: محمد بن علي" required />
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="input"
+                    placeholder="مثال: محمد بن علي"
+                    required
+                  />
                 </Field>
                 <Field label="المهنة">
-                  <select value={profession} onChange={(e) => setProfession(e.target.value)} className="input">
-                    {["سباك", "كهربائي", "دهان", "نجار", "حداد", "بلاط", "فني تكييف", "أعمال عامة"].map((p) => (
-                      <option key={p} value={p}>{p}</option>
+                  <select
+                    value={profession}
+                    onChange={(e) => setProfession(e.target.value)}
+                    className="input"
+                  >
+                    {[
+                      "سباك",
+                      "كهربائي",
+                      "دهان",
+                      "نجار",
+                      "حداد",
+                      "بلاط",
+                      "فني تكييف",
+                      "أعمال عامة",
+                    ].map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
                     ))}
                   </select>
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="الولاية">
-                    <input value={wilaya} onChange={(e) => setWilaya(e.target.value)} className="input" required />
+                    <input
+                      value={wilaya}
+                      onChange={(e) => setWilaya(e.target.value)}
+                      className="input"
+                      required
+                    />
                   </Field>
                   <Field label="البلدية">
-                    <input value={commune} onChange={(e) => setCommune(e.target.value)} className="input" required />
+                    <input
+                      value={commune}
+                      onChange={(e) => setCommune(e.target.value)}
+                      className="input"
+                      required
+                    />
                   </Field>
                 </div>
               </>
@@ -180,7 +212,15 @@ function AuthPage() {
             <button disabled={loading} className="btn-gold w-full mt-2">
               {loading ? "..." : "تأكيد ومتابعة"}
             </button>
-            <button type="button" onClick={() => { setOtp(""); setError(null); setStep("phone"); }} className="w-full text-sm text-muted-foreground py-2">
+            <button
+              type="button"
+              onClick={() => {
+                setOtp("");
+                setError(null);
+                setStep("phone");
+              }}
+              className="w-full text-sm text-muted-foreground py-2"
+            >
               تغيير الرقم
             </button>
           </form>
@@ -189,7 +229,6 @@ function AuthPage() {
           <p className="text-xs text-red-400 text-center mt-3">{error}</p>
         )}
       </div>
-
 
       <style>{`
         .input {
