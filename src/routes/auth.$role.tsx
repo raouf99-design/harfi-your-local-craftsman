@@ -88,7 +88,11 @@ function AuthPage() {
       });
 
       setSession({ user: res.user, token: res.token });
-      navigate({ to: res.user.role === "craftsman" ? "/dashboard" : "/home" });
+      if (res.user.role === "craftsman") {
+        setStep("media");
+      } else {
+        navigate({ to: "/home" });
+      }
     } catch (err) {
       console.error("[auth] OTP verify failed", err);
       setError("رمز التحقق غير صحيح أو منتهي الصلاحية");
