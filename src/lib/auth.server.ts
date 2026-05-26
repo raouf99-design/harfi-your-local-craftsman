@@ -3,7 +3,9 @@ import type { Role, User } from "@/lib/api";
 
 type ProfileInput = {
   userId: string;
-  phone: string;
+  phone?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
   role: Role;
   name?: string;
   profession?: string;
@@ -11,19 +13,37 @@ type ProfileInput = {
   commune?: string;
 };
 
-const clean = (value?: string) => {
+const clean = (value?: string | null) => {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
 };
 
 export async function upsertAuthProfile(input: ProfileInput): Promise<User> {
+  // Preserve existing fields if not provided (so Google sign-in doesn't wipe phone)
+  const { data: existing } = await supabaseAdmin
+    .from("profiles")
+    .select("phone, email, avatar_url, name, profession, wilaya, commune")
+    .eq("user_id", input.userId)
+    .maybeSingle();
+
   const profile = {
     user_id: input.userId,
-    phone: input.phone,
-    name: clean(input.name),
-    profession: input.role === "craftsman" ? clean(input.profession) : null,
-    wilaya: input.role === "craftsman" ? clean(input.wilaya) : null,
-    commune: input.role === "craftsman" ? clean(input.commune) : null,
+    phone: clean(input.phone) ?? existing?.phone ?? null,
+    email: clean(input.email) ?? existing?.email ?? null,
+    avatar_url: clean(input.avatarUrl) ?? existing?.avatar_url ?? null,
+    name: clean(input.name) ?? existing?.name ?? null,
+    profession:
+      input.role === "craftsman"
+        ? (clean(input.profession) ?? existing?.profession ?? null)
+        : null,
+    wilaya:
+      input.role === "craftsman"
+        ? (clean(input.wilaya) ?? existing?.wilaya ?? null)
+        : null,
+    commune:
+      input.role === "craftsman"
+        ? (clean(input.commune) ?? existing?.commune ?? null)
+        : null,
     available: input.role === "craftsman",
   };
 
@@ -57,7 +77,9 @@ export async function upsertAuthProfile(input: ProfileInput): Promise<User> {
 
   return {
     id: input.userId,
-    phone: input.phone,
+    phone: profile.phone ?? undefined,
+    email: profile.email ?? undefined,
+    avatar_url: profile.avatar_url ?? undefined,
     role: input.role,
     name: profile.name ?? undefined,
     profession: profile.profession ?? undefined,
