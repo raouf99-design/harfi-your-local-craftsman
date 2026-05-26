@@ -39,11 +39,22 @@ function CraftsmanProfile() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data, error } = await supabase
+      const baseQuery = supabase
         .from("profiles")
-        .select("user_id, name, profession, wilaya, commune, available" + (authed ? ", phone" : ""))
         .eq("user_id", id)
         .maybeSingle();
+      const { data, error } = authed
+        ? await supabase
+            .from("profiles")
+            .select("user_id, name, profession, wilaya, commune, available, phone")
+            .eq("user_id", id)
+            .maybeSingle()
+        : await supabase
+            .from("profiles")
+            .select("user_id, name, profession, wilaya, commune, available")
+            .eq("user_id", id)
+            .maybeSingle();
+      void baseQuery;
       if (!active) return;
       if (error) console.error("[craftsman] fetch failed", error);
       if (!data) setNotFound(true);
