@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CraftsmanIdRouteImport } from './routes/craftsman.$id'
 import { Route as CategoryIdRouteImport } from './routes/category.$id'
 import { Route as AuthRoleRouteImport } from './routes/auth.$role'
 
@@ -22,6 +23,11 @@ const HomeRoute = HomeRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CraftsmanIdRoute = CraftsmanIdRouteImport.update({
+  id: '/craftsman/$id',
+  path: '/craftsman/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CategoryIdRoute = CategoryIdRouteImport.update({
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/home': typeof HomeRoute
   '/auth/$role': typeof AuthRoleRoute
   '/category/$id': typeof CategoryIdRoute
+  '/craftsman/$id': typeof CraftsmanIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/home': typeof HomeRoute
   '/auth/$role': typeof AuthRoleRoute
   '/category/$id': typeof CategoryIdRoute
+  '/craftsman/$id': typeof CraftsmanIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,20 @@ export interface FileRoutesById {
   '/home': typeof HomeRoute
   '/auth/$role': typeof AuthRoleRoute
   '/category/$id': typeof CategoryIdRoute
+  '/craftsman/$id': typeof CraftsmanIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/home' | '/auth/$role' | '/category/$id'
+  fullPaths: '/' | '/home' | '/auth/$role' | '/category/$id' | '/craftsman/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/home' | '/auth/$role' | '/category/$id'
-  id: '__root__' | '/' | '/home' | '/auth/$role' | '/category/$id'
+  to: '/' | '/home' | '/auth/$role' | '/category/$id' | '/craftsman/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/home'
+    | '/auth/$role'
+    | '/category/$id'
+    | '/craftsman/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +82,7 @@ export interface RootRouteChildren {
   HomeRoute: typeof HomeRoute
   AuthRoleRoute: typeof AuthRoleRoute
   CategoryIdRoute: typeof CategoryIdRoute
+  CraftsmanIdRoute: typeof CraftsmanIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -83,6 +99,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/craftsman/$id': {
+      id: '/craftsman/$id'
+      path: '/craftsman/$id'
+      fullPath: '/craftsman/$id'
+      preLoaderRoute: typeof CraftsmanIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/category/$id': {
@@ -107,6 +130,7 @@ const rootRouteChildren: RootRouteChildren = {
   HomeRoute: HomeRoute,
   AuthRoleRoute: AuthRoleRoute,
   CategoryIdRoute: CategoryIdRoute,
+  CraftsmanIdRoute: CraftsmanIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
