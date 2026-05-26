@@ -109,14 +109,25 @@ export const rateRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => RateSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await supabaseAdmin
+    const { data: row, error } = await supabaseAdmin
       .from("service_requests")
       .update({ rating: data.rating })
       .eq("id", data.id)
-      .eq("customer_id", context.userId);
+      .eq("customer_id", context.userId)
+      .select("craftsman_id, category")
+      .maybeSingle();
     if (error) {
       console.error("[service-requests] rate failed", error);
       throw new Error("تعذّر حفظ التقييم");
+    }
+    if (row?.craftsman_id) {
+      await createNotification({
+        userId: row.craftsman_id,
+        type: "request_rated",
+        title: `تقييم جديد ${"★".repeat(data.rating)}`,
+        body: row.category,
+        requestId: data.id,
+      });
     }
     return { ok: true };
   });
