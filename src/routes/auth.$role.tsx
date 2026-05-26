@@ -13,11 +13,8 @@ export const Route = createFileRoute("/auth/$role")({
 
 function AuthPage() {
   const { role } = Route.useParams() as { role: string };
-  // Runtime allow-list: never forward an arbitrary role param to the backend.
-  if (!ALLOWED_ROLES.includes(role as Role)) {
-    return <Navigate to="/" />;
-  }
-  const validRole = role as Role;
+  const isAllowedRole = ALLOWED_ROLES.includes(role as Role);
+  const validRole: Role = isAllowedRole ? (role as Role) : "customer";
   const navigate = useNavigate();
   const completeAuth = useServerFn(completePhoneAuth);
 
@@ -32,6 +29,11 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
 
   const isCraftsman = validRole === "craftsman";
+
+  // Runtime allow-list: never forward an arbitrary role param to the backend.
+  if (!isAllowedRole) {
+    return <Navigate to="/" />;
+  }
 
   // Normalize to E.164-ish Algerian format: +2135XXXXXXXX
   const normalizedPhone = () => {
