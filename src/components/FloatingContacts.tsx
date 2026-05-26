@@ -33,7 +33,7 @@ type Link = {
   href: string;
   label: string;
   bg: string;
-  Icon: (p: { className?: string }) => JSX.Element;
+  Icon: (p: { className?: string }) => React.ReactElement;
   iconColor: string;
 };
 
