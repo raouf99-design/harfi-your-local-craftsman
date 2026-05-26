@@ -139,6 +139,7 @@ function CategoryPage() {
           <ul className="mt-3 space-y-3">
             {filtered.map((c) => {
               const displayName = c.name || "حرفي";
+              const s = stats[c.user_id];
               return (
                 <li key={c.user_id}>
                   <Link
@@ -151,14 +152,28 @@ function CategoryPage() {
                       {displayName.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold">{displayName}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-bold truncate">{displayName}</p>
+                        {s?.rating != null && (
+                          <span className="text-[11px] flex items-center gap-0.5 text-[color:var(--gold)] font-bold shrink-0">
+                            <Star className="h-3 w-3 fill-current" /> {s.rating}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-[color:var(--gold)] mt-0.5">{c.profession}</p>
-                      {(c.wilaya || c.commune) && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                          <MapPin className="h-3 w-3" /> {c.wilaya}
-                          {c.commune ? ` · ${c.commune}` : ""}
-                        </p>
-                      )}
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        {(c.wilaya || c.commune) ? (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                            <MapPin className="h-3 w-3 shrink-0" /> {c.wilaya}
+                            {c.commune ? ` · ${c.commune}` : ""}
+                          </p>
+                        ) : <span />}
+                        {s?.count ? (
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {s.count} عمل
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </Link>
                 </li>
