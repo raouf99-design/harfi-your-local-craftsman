@@ -50,10 +50,18 @@ export const updateMyProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => UpdateSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(data)) {
-      if (v !== undefined) patch[k] = v;
-    }
+    const patch: {
+      name?: string;
+      profession?: string;
+      wilaya?: string;
+      commune?: string;
+      available?: boolean;
+    } = {};
+    if (data.name !== undefined) patch.name = data.name;
+    if (data.profession !== undefined) patch.profession = data.profession;
+    if (data.wilaya !== undefined) patch.wilaya = data.wilaya;
+    if (data.commune !== undefined) patch.commune = data.commune;
+    if (data.available !== undefined) patch.available = data.available;
     if (!Object.keys(patch).length) return { ok: true };
     const { error } = await supabaseAdmin
       .from("profiles")
