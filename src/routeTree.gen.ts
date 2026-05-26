@@ -9,38 +9,187 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as HomeRouteImport } from './routes/home'
+import { Route as EarningsRouteImport } from './routes/earnings'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RequestsIndexRouteImport } from './routes/requests.index'
+import { Route as RequestsNewRouteImport } from './routes/requests.new'
+import { Route as CraftsmanIdRouteImport } from './routes/craftsman.$id'
+import { Route as CategoryIdRouteImport } from './routes/category.$id'
+import { Route as AuthRoleRouteImport } from './routes/auth.$role'
 
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EarningsRoute = EarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RequestsIndexRoute = RequestsIndexRouteImport.update({
+  id: '/requests/',
+  path: '/requests/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestsNewRoute = RequestsNewRouteImport.update({
+  id: '/requests/new',
+  path: '/requests/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CraftsmanIdRoute = CraftsmanIdRouteImport.update({
+  id: '/craftsman/$id',
+  path: '/craftsman/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoryIdRoute = CategoryIdRouteImport.update({
+  id: '/category/$id',
+  path: '/category/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoleRoute = AuthRoleRouteImport.update({
+  id: '/auth/$role',
+  path: '/auth/$role',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/dashboard': typeof DashboardRoute
+  '/earnings': typeof EarningsRoute
+  '/home': typeof HomeRoute
+  '/auth/$role': typeof AuthRoleRoute
+  '/category/$id': typeof CategoryIdRoute
+  '/craftsman/$id': typeof CraftsmanIdRoute
+  '/requests/new': typeof RequestsNewRoute
+  '/requests/': typeof RequestsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/dashboard': typeof DashboardRoute
+  '/earnings': typeof EarningsRoute
+  '/home': typeof HomeRoute
+  '/auth/$role': typeof AuthRoleRoute
+  '/category/$id': typeof CategoryIdRoute
+  '/craftsman/$id': typeof CraftsmanIdRoute
+  '/requests/new': typeof RequestsNewRoute
+  '/requests': typeof RequestsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/dashboard': typeof DashboardRoute
+  '/earnings': typeof EarningsRoute
+  '/home': typeof HomeRoute
+  '/auth/$role': typeof AuthRoleRoute
+  '/category/$id': typeof CategoryIdRoute
+  '/craftsman/$id': typeof CraftsmanIdRoute
+  '/requests/new': typeof RequestsNewRoute
+  '/requests/': typeof RequestsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/dashboard'
+    | '/earnings'
+    | '/home'
+    | '/auth/$role'
+    | '/category/$id'
+    | '/craftsman/$id'
+    | '/requests/new'
+    | '/requests/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/dashboard'
+    | '/earnings'
+    | '/home'
+    | '/auth/$role'
+    | '/category/$id'
+    | '/craftsman/$id'
+    | '/requests/new'
+    | '/requests'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/dashboard'
+    | '/earnings'
+    | '/home'
+    | '/auth/$role'
+    | '/category/$id'
+    | '/craftsman/$id'
+    | '/requests/new'
+    | '/requests/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  DashboardRoute: typeof DashboardRoute
+  EarningsRoute: typeof EarningsRoute
+  HomeRoute: typeof HomeRoute
+  AuthRoleRoute: typeof AuthRoleRoute
+  CategoryIdRoute: typeof CategoryIdRoute
+  CraftsmanIdRoute: typeof CraftsmanIdRoute
+  RequestsNewRoute: typeof RequestsNewRoute
+  RequestsIndexRoute: typeof RequestsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/earnings': {
+      id: '/earnings'
+      path: '/earnings'
+      fullPath: '/earnings'
+      preLoaderRoute: typeof EarningsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +197,56 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/requests/': {
+      id: '/requests/'
+      path: '/requests'
+      fullPath: '/requests/'
+      preLoaderRoute: typeof RequestsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/requests/new': {
+      id: '/requests/new'
+      path: '/requests/new'
+      fullPath: '/requests/new'
+      preLoaderRoute: typeof RequestsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/craftsman/$id': {
+      id: '/craftsman/$id'
+      path: '/craftsman/$id'
+      fullPath: '/craftsman/$id'
+      preLoaderRoute: typeof CraftsmanIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/category/$id': {
+      id: '/category/$id'
+      path: '/category/$id'
+      fullPath: '/category/$id'
+      preLoaderRoute: typeof CategoryIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/$role': {
+      id: '/auth/$role'
+      path: '/auth/$role'
+      fullPath: '/auth/$role'
+      preLoaderRoute: typeof AuthRoleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  DashboardRoute: DashboardRoute,
+  EarningsRoute: EarningsRoute,
+  HomeRoute: HomeRoute,
+  AuthRoleRoute: AuthRoleRoute,
+  CategoryIdRoute: CategoryIdRoute,
+  CraftsmanIdRoute: CraftsmanIdRoute,
+  RequestsNewRoute: RequestsNewRoute,
+  RequestsIndexRoute: RequestsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
