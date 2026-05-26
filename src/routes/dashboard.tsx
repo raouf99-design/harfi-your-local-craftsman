@@ -1,10 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState, useCallback } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSession, setSession, type Session } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listJobsForCraftsman,
+  acceptJob as acceptJobFn,
+  declineJob as declineJobFn,
+  completeJob as completeJobFn,
+} from "@/lib/service-requests.functions";
 import { TrendingUp, Wallet, CheckCircle2, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
@@ -25,6 +32,10 @@ interface Job {
 
 function Dashboard() {
   const navigate = useNavigate();
+  const fetchJobsFn = useServerFn(listJobsForCraftsman);
+  const acceptFn = useServerFn(acceptJobFn);
+  const declineFn = useServerFn(declineJobFn);
+  const completeFn = useServerFn(completeJobFn);
   const [session, setSess] = useState<Session | null>(null);
   const [available, setAvailable] = useState(true);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -32,17 +43,17 @@ function Dashboard() {
   const [priceModalId, setPriceModalId] = useState<string | null>(null);
   const [priceInput, setPriceInput] = useState("");
 
-  const fetchJobs = useCallback(async (uid: string) => {
+  const fetchJobs = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("service_requests")
-      .select("id, customer_id, craftsman_id, category, address, description, status, price, created_at")
-      .or(`status.eq.pending,craftsman_id.eq.${uid}`)
-      .order("created_at", { ascending: false });
-    if (error) console.error("[dashboard] fetch failed", error);
-    setJobs((data ?? []) as Job[]);
-    setLoading(false);
-  }, []);
+    try {
+      const res = await fetchJobsFn({});
+      setJobs((res.items ?? []) as Job[]);
+    } catch (err) {
+      console.error("[dashboard] fetch failed", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchJobsFn]);
 
   useEffect(() => {
     const s = getSession();
@@ -52,7 +63,7 @@ function Dashboard() {
     }
     setSess(s);
     setAvailable(s.user.available ?? true);
-    if (s.user.role === "craftsman") fetchJobs(s.user.id);
+    if (s.user.role === "craftsman") fetchJobs();
     else setLoading(false);
   }, [navigate, fetchJobs]);
 
@@ -66,39 +77,30 @@ function Dashboard() {
   };
 
   const acceptJob = async (id: string, price: number) => {
-    const { error } = await supabase
-      .from("service_requests")
-      .update({ status: "accepted", craftsman_id: session.user.id, price })
-      .eq("id", id);
-    if (error) {
-      console.error("[dashboard] accept failed", error);
-      return;
+    try {
+      await acceptFn({ data: { id, price } });
+      fetchJobs();
+    } catch (err) {
+      console.error("[dashboard] accept failed", err);
     }
-    fetchJobs(session.user.id);
   };
 
   const declineJob = async (id: string) => {
-    const { error } = await supabase
-      .from("service_requests")
-      .update({ status: "cancelled" })
-      .eq("id", id);
-    if (error) {
-      console.error("[dashboard] decline failed", error);
-      return;
+    try {
+      await declineFn({ data: { id } });
+      fetchJobs();
+    } catch (err) {
+      console.error("[dashboard] decline failed", err);
     }
-    fetchJobs(session.user.id);
   };
 
   const completeJob = async (id: string) => {
-    const { error } = await supabase
-      .from("service_requests")
-      .update({ status: "completed" })
-      .eq("id", id);
-    if (error) {
-      console.error("[dashboard] complete failed", error);
-      return;
+    try {
+      await completeFn({ data: { id } });
+      fetchJobs();
+    } catch (err) {
+      console.error("[dashboard] complete failed", err);
     }
-    fetchJobs(session.user.id);
   };
 
   const submitPrice = (e: React.FormEvent) => {

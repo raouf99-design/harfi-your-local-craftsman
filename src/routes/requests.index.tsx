@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState, useCallback } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star } from "lucide-react";
 import { getSession } from "@/lib/api";
-import { supabase } from "@/integrations/supabase/client";
+import { listMyRequests, rateRequest } from "@/lib/service-requests.functions";
 
 export const Route = createFileRoute("/requests/")({
   component: RequestsList,
@@ -32,22 +33,23 @@ const STATUS: Record<RequestItem["status"], { label: string; color: string }> = 
 
 function RequestsList() {
   const navigate = useNavigate();
+  const fetchList = useServerFn(listMyRequests);
+  const rateFn = useServerFn(rateRequest);
   const [authed, setAuthed] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const [items, setItems] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchItems = useCallback(async (uid: string) => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("service_requests")
-      .select("id, craftsman_id, category, address, description, status, created_at, rating")
-      .eq("customer_id", uid)
-      .order("created_at", { ascending: false });
-    if (error) console.error("[requests] fetch failed", error);
-    setItems((data ?? []) as RequestItem[]);
-    setLoading(false);
-  }, []);
+    try {
+      const res = await fetchList({});
+      setItems((res.items ?? []) as RequestItem[]);
+    } catch (err) {
+      console.error("[requests] fetch failed", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchList]);
 
   useEffect(() => {
     const s = getSession();
@@ -56,20 +58,19 @@ function RequestsList() {
       return;
     }
     setAuthed(true);
-    setUserId(s.user.id);
-    fetchItems(s.user.id);
+    fetchItems();
   }, [navigate, fetchItems]);
 
   const rate = async (id: string, r: number) => {
-    const { error } = await supabase.from("service_requests").update({ rating: r }).eq("id", id);
-    if (error) {
-      console.error("[requests] rate failed", error);
-      return;
+    try {
+      await rateFn({ data: { id, rating: r } });
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, rating: r } : i)));
+    } catch (err) {
+      console.error("[requests] rate failed", err);
     }
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, rating: r } : i)));
   };
 
-  if (!authed || !userId) return null;
+  if (!authed) return null;
 
   return (
     <main className="min-h-screen bg-background pb-24">

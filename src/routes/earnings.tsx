@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSession } from "@/lib/api";
-import { supabase } from "@/integrations/supabase/client";
+import { listEarnings } from "@/lib/service-requests.functions";
 
 export const Route = createFileRoute("/earnings")({
   component: Earnings,
@@ -21,6 +22,7 @@ interface Txn {
 
 function Earnings() {
   const navigate = useNavigate();
+  const fetchEarnings = useServerFn(listEarnings);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [txns, setTxns] = useState<Txn[]>([]);
@@ -33,28 +35,16 @@ function Earnings() {
     }
     setReady(true);
     (async () => {
-      const { data, error } = await supabase
-        .from("service_requests")
-        .select("id, category, customer_id, price, created_at")
-        .eq("craftsman_id", s.user.id)
-        .eq("status", "completed")
-        .order("created_at", { ascending: false });
-      if (error) console.error("[earnings] fetch failed", error);
-      const rows = (data ?? []) as Omit<Txn, "customer_name">[];
-
-      const ids = Array.from(new Set(rows.map((r) => r.customer_id)));
-      let nameMap: Record<string, string | null> = {};
-      if (ids.length) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, name")
-          .in("user_id", ids);
-        nameMap = Object.fromEntries((profs ?? []).map((p) => [p.user_id, p.name]));
+      try {
+        const res = await fetchEarnings({});
+        setTxns((res.items ?? []) as Txn[]);
+      } catch (err) {
+        console.error("[earnings] fetch failed", err);
+      } finally {
+        setLoading(false);
       }
-      setTxns(rows.map((r) => ({ ...r, customer_name: nameMap[r.customer_id] ?? null })));
-      setLoading(false);
     })();
-  }, [navigate]);
+  }, [navigate, fetchEarnings]);
 
   if (!ready) return null;
 
