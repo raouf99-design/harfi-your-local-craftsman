@@ -35,10 +35,12 @@ function CraftsmanProfile() {
   const { id } = Route.useParams();
   const { cat } = Route.useSearch();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [stats, setStats] = useState<{ count: number; rating: number | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const authed = !!getSession();
   const fetchPhone = useServerFn(getCraftsmanPhone);
+  const fetchStats = useServerFn(getCraftsmenStats);
 
   useEffect(() => {
     let active = true;
@@ -64,6 +66,12 @@ function CraftsmanProfile() {
           console.error("[craftsman] phone fetch failed", e);
         }
       }
+      try {
+        const res = await fetchStats({ data: { userIds: [id] } });
+        if (active) setStats(res.stats?.[id] ?? null);
+      } catch (e) {
+        console.error("[craftsman] stats failed", e);
+      }
       if (!active) return;
       setProfile({ ...(data as Profile), phone });
       setLoading(false);
@@ -71,7 +79,7 @@ function CraftsmanProfile() {
     return () => {
       active = false;
     };
-  }, [id, authed, fetchPhone]);
+  }, [id, authed, fetchPhone, fetchStats]);
 
   if (loading) {
     return (
