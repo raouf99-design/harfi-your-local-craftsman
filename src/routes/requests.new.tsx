@@ -31,10 +31,17 @@ interface RequestItem {
 function NewRequest() {
   const { craftsmanId, craftsmanName } = Route.useSearch();
   const navigate = useNavigate();
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => {
+    const s = getSession();
+    if (!s) navigate({ to: "/" });
+    else setAuthed(true);
+  }, [navigate]);
   const [category, setCategory] = useState("سباك");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+  if (!authed) return null;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
