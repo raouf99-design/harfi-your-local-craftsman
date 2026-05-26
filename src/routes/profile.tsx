@@ -103,8 +103,12 @@ function ProfilePage() {
         <Link to="/home" className="text-sm text-muted-foreground">→ رجوع</Link>
 
         <div className="mt-5 flex items-center gap-4">
-          <div className="h-20 w-20 rounded-3xl gold-gradient text-black font-black flex items-center justify-center text-3xl glow-gold">
-            {(name || session.user.name || "ح").charAt(0)}
+          <div className="h-20 w-20 rounded-3xl overflow-hidden gold-gradient text-black font-black flex items-center justify-center text-3xl glow-gold">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              (name || session.user.name || "ح").charAt(0)
+            )}
           </div>
           <div>
             <h1 className="text-2xl font-black">{name || "حسابي"}</h1>
