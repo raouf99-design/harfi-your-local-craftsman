@@ -38,6 +38,7 @@ function Dashboard() {
   const fetchJobsFn = useServerFn(listJobsForCraftsman);
   const acceptFn = useServerFn(acceptJobFn);
   const declineFn = useServerFn(declineJobFn);
+  const startFn = useServerFn(startJobFn);
   const completeFn = useServerFn(completeJobFn);
   const [session, setSess] = useState<Session | null>(null);
   const [available, setAvailable] = useState(true);
