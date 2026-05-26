@@ -5,7 +5,8 @@ import { getSession, setSession, type Session } from "@/lib/api";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { BottomNav } from "@/components/BottomNav";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bell, Search, MapPin, LogOut } from "lucide-react";
+import { Search, MapPin, LogOut } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export const Route = createFileRoute("/home")({
   component: HomePage,
