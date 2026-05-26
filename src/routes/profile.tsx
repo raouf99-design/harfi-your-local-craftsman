@@ -7,6 +7,8 @@ import { PortfolioManager } from "@/components/PortfolioManager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSession, setSession, type Session } from "@/lib/api";
 import { getMyProfile, updateMyProfile } from "@/lib/profile.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { LogOut, Save, Info } from "lucide-react";
 
 export const Route = createFileRoute("/profile")({
@@ -92,8 +94,14 @@ function ProfilePage() {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("[profile] supabase signOut failed", err);
+    }
     setSession(null);
+    toast.info("تم تسجيل الخروج");
     navigate({ to: "/" });
   };
 
