@@ -91,11 +91,6 @@ function RequestsList() {
                     <span className="text-muted-foreground">
                       {new Date(r.createdAt).toLocaleDateString("ar-DZ")}
                     </span>
-                    {r.status !== "completed" && r.status !== "cancelled" && (
-                      <button onClick={() => advance(r.id)} className="text-[color:var(--gold)] font-bold">
-                        محاكاة التقدم →
-                      </button>
-                    )}
                   </div>
 
                   {r.status === "completed" && (
