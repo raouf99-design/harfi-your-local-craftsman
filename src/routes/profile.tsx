@@ -123,7 +123,7 @@ function ProfilePage() {
             <p className="text-xs text-[color:var(--gold)]">
               {isCraftsman ? "حساب حرفي" : "حساب عميل"}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">{session.user.phone}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{session.user.phone || session.user.email}</p>
           </div>
         </div>
 
