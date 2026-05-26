@@ -119,6 +119,17 @@ function AuthPage() {
 
         {step === "phone" ? (
           <form onSubmit={sendOtp} className="mt-8 space-y-4">
+            {!isCraftsman && (
+              <Field label="الاسم الكامل">
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input"
+                  placeholder="مثال: أمين قاسمي"
+                  required
+                />
+              </Field>
+            )}
             {isCraftsman && (
               <>
                 <Field label="الاسم الكامل">
