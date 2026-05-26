@@ -1,6 +1,9 @@
 import { createFileRoute, useNavigate, Link, Navigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { api, ApiError, setSession, type Role, type User } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { completePhoneAuth } from "@/lib/auth.functions";
+import { setSession, type Role } from "@/lib/api";
 
 const ALLOWED_ROLES: readonly Role[] = ["customer", "craftsman"] as const;
 
@@ -10,12 +13,10 @@ export const Route = createFileRoute("/auth/$role")({
 
 function AuthPage() {
   const { role } = Route.useParams() as { role: string };
-  // Runtime allow-list: never forward an arbitrary role param to the backend.
-  if (!ALLOWED_ROLES.includes(role as Role)) {
-    return <Navigate to="/" />;
-  }
-  const validRole = role as Role;
+  const isAllowedRole = ALLOWED_ROLES.includes(role as Role);
+  const validRole: Role = isAllowedRole ? (role as Role) : "customer";
   const navigate = useNavigate();
+  const completeAuth = useServerFn(completePhoneAuth);
 
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
@@ -28,6 +29,11 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
 
   const isCraftsman = validRole === "craftsman";
+
+  // Runtime allow-list: never forward an arbitrary role param to the backend.
+  if (!isAllowedRole) {
+    return <Navigate to="/" />;
+  }
 
   // Normalize to E.164-ish Algerian format: +2135XXXXXXXX
   const normalizedPhone = () => {
@@ -45,18 +51,19 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      // Real server-side OTP send. Backend MUST generate, store, and SMS the code.
-      await api("/auth/send-otp", {
-        method: "POST",
-        body: JSON.stringify({ phone: normalizedPhone(), role: validRole }),
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: normalizedPhone(),
+        options: {
+          channel: "sms",
+          shouldCreateUser: true,
+          data: { role: validRole },
+        },
       });
+      if (error) throw error;
       setStep("otp");
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        setError("خدمة التحقق غير متاحة حالياً، يرجى المحاولة لاحقاً");
-      } else {
-        setError(err instanceof Error ? err.message : "تعذّر إرسال الرمز");
-      }
+      console.error("[auth] OTP send failed", err);
+      setError("تعذّر إرسال الرمز. تأكد من الرقم وحاول مرة أخرى");
     } finally {
       setLoading(false);
     }
@@ -71,40 +78,37 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      // Backend validates OTP and returns a signed token + user (role is server-issued).
-      const res = await api<{ token: string; user: User }>("/auth/verify-otp", {
-        method: "POST",
-        body: JSON.stringify({
-          phone: normalizedPhone(),
-          code: otp,
-          // Profile fields sent only on signup; the server decides what to persist
-          // and which role to grant. Never trust the client-supplied role.
-          ...(isCraftsman
-            ? { name, profession, wilaya, commune }
-            : { name }),
-        }),
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: normalizedPhone(),
+        token: otp,
+        type: "sms",
       });
-      if (!res?.token || !res?.user) {
-        throw new Error("استجابة غير صالحة من الخادم");
-      }
-      setSession({ user: res.user, token: res.token });
+      if (error || !data.session) throw error ?? new Error("تعذّر إنشاء الجلسة");
+
+      const res = await completeAuth({
+        data: {
+          phone: normalizedPhone(),
+          role: validRole,
+          ...(isCraftsman ? { name, profession, wilaya, commune } : { name }),
+        },
+      });
+
+      setSession({ user: res.user, token: data.session.access_token });
       navigate({ to: res.user.role === "craftsman" ? "/dashboard" : "/home" });
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        setError("خدمة التحقق غير متاحة حالياً، يرجى المحاولة لاحقاً");
-      } else {
-        setError(err instanceof Error ? err.message : "رمز التحقق غير صحيح");
-      }
+      console.error("[auth] OTP verify failed", err);
+      setError("رمز التحقق غير صحيح أو منتهي الصلاحية");
     } finally {
       setLoading(false);
     }
   };
 
-
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-md px-6 pt-10 pb-20">
-        <Link to="/" className="text-sm text-muted-foreground">→ رجوع</Link>
+        <Link to="/" className="text-sm text-muted-foreground">
+          → رجوع
+        </Link>
 
         <div className="mt-6">
           <p className="text-xs text-[color:var(--gold)] tracking-widest font-bold">
@@ -125,21 +129,52 @@ function AuthPage() {
             {isCraftsman && (
               <>
                 <Field label="الاسم الكامل">
-                  <input value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="مثال: محمد بن علي" required />
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="input"
+                    placeholder="مثال: محمد بن علي"
+                    required
+                  />
                 </Field>
                 <Field label="المهنة">
-                  <select value={profession} onChange={(e) => setProfession(e.target.value)} className="input">
-                    {["سباك", "كهربائي", "دهان", "نجار", "حداد", "بلاط", "فني تكييف", "أعمال عامة"].map((p) => (
-                      <option key={p} value={p}>{p}</option>
+                  <select
+                    value={profession}
+                    onChange={(e) => setProfession(e.target.value)}
+                    className="input"
+                  >
+                    {[
+                      "سباك",
+                      "كهربائي",
+                      "دهان",
+                      "نجار",
+                      "حداد",
+                      "بلاط",
+                      "فني تكييف",
+                      "أعمال عامة",
+                    ].map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
                     ))}
                   </select>
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="الولاية">
-                    <input value={wilaya} onChange={(e) => setWilaya(e.target.value)} className="input" required />
+                    <input
+                      value={wilaya}
+                      onChange={(e) => setWilaya(e.target.value)}
+                      className="input"
+                      required
+                    />
                   </Field>
                   <Field label="البلدية">
-                    <input value={commune} onChange={(e) => setCommune(e.target.value)} className="input" required />
+                    <input
+                      value={commune}
+                      onChange={(e) => setCommune(e.target.value)}
+                      className="input"
+                      required
+                    />
                   </Field>
                 </div>
               </>
@@ -177,7 +212,15 @@ function AuthPage() {
             <button disabled={loading} className="btn-gold w-full mt-2">
               {loading ? "..." : "تأكيد ومتابعة"}
             </button>
-            <button type="button" onClick={() => { setOtp(""); setError(null); setStep("phone"); }} className="w-full text-sm text-muted-foreground py-2">
+            <button
+              type="button"
+              onClick={() => {
+                setOtp("");
+                setError(null);
+                setStep("phone");
+              }}
+              className="w-full text-sm text-muted-foreground py-2"
+            >
               تغيير الرقم
             </button>
           </form>
@@ -186,7 +229,6 @@ function AuthPage() {
           <p className="text-xs text-red-400 text-center mt-3">{error}</p>
         )}
       </div>
-
 
       <style>{`
         .input {
