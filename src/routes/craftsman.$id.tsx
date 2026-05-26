@@ -29,7 +29,14 @@ interface Profile {
   wilaya: string | null;
   commune: string | null;
   available: boolean;
+  avatar_url?: string | null;
   phone?: string | null;
+}
+
+interface PortfolioItem {
+  id: string;
+  image_url: string;
+  caption: string | null;
 }
 
 function CraftsmanProfile() {
