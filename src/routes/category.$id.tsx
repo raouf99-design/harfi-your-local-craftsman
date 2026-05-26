@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { CATEGORIES } from "@/lib/categories";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin } from "lucide-react";
+import { getCraftsmenStats } from "@/lib/service-requests.functions";
+import { MapPin, Star } from "lucide-react";
 
 export const Route = createFileRoute("/category/$id")({
   component: CategoryPage,
@@ -34,8 +36,10 @@ function CategoryPage() {
   const { id } = Route.useParams();
   const cat = CATEGORIES.find((c) => c.id === id) ?? CATEGORIES[0];
   const profession = CATEGORY_TO_PROFESSION[id] ?? cat.name;
+  const statsFn = useServerFn(getCraftsmenStats);
 
   const [list, setList] = useState<CraftsmanProfile[]>([]);
+  const [stats, setStats] = useState<Record<string, { count: number; rating: number | null }>>({});
   const [loading, setLoading] = useState(true);
   const [wilayaFilter, setWilayaFilter] = useState("الكل");
 
@@ -50,13 +54,23 @@ function CategoryPage() {
         .eq("available", true);
       if (!active) return;
       if (error) console.error("[category] fetch failed", error);
-      setList((data ?? []) as CraftsmanProfile[]);
+      const items = (data ?? []) as CraftsmanProfile[];
+      setList(items);
       setLoading(false);
+      const ids = items.map((c) => c.user_id);
+      if (ids.length) {
+        try {
+          const res = await statsFn({ data: { userIds: ids } });
+          if (active) setStats(res.stats ?? {});
+        } catch (e) {
+          console.error("[category] stats failed", e);
+        }
+      }
     })();
     return () => {
       active = false;
     };
-  }, [profession]);
+  }, [profession, statsFn]);
 
   const wilayas = useMemo(() => {
     const set = new Set<string>();
