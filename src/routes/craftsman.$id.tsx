@@ -206,9 +206,34 @@ function CraftsmanProfile() {
             حرفي متاح للعمل في منطقتك. يمكنك إرسال طلب خدمة وسيتم التواصل معك قريباً.
           </p>
         </div>
+
+        {portfolio.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-sm font-bold mb-3">معرض الأعمال</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {portfolio.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setLightbox(p.image_url)}
+                  className="aspect-square rounded-xl overflow-hidden border border-white/10 bg-card"
+                >
+                  <img src={p.image_url} alt={p.caption ?? ""} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="fixed bottom-16 inset-x-0 z-30 px-5">
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+        >
+          <img src={lightbox} alt="" className="max-h-full max-w-full rounded-2xl" />
+        </div>
+      )}
         <div className="mx-auto max-w-md flex gap-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2">
           {authed && (
             <>
