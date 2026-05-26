@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as EarningsRouteImport } from './routes/earnings'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RequestsIndexRouteImport } from './routes/requests.index'
@@ -21,6 +22,11 @@ import { Route as AuthRoleRouteImport } from './routes/auth.$role'
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EarningsRoute = EarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -62,6 +68,7 @@ const AuthRoleRoute = AuthRoleRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/earnings': typeof EarningsRoute
   '/home': typeof HomeRoute
   '/auth/$role': typeof AuthRoleRoute
   '/category/$id': typeof CategoryIdRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/earnings': typeof EarningsRoute
   '/home': typeof HomeRoute
   '/auth/$role': typeof AuthRoleRoute
   '/category/$id': typeof CategoryIdRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/earnings': typeof EarningsRoute
   '/home': typeof HomeRoute
   '/auth/$role': typeof AuthRoleRoute
   '/category/$id': typeof CategoryIdRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/earnings'
     | '/home'
     | '/auth/$role'
     | '/category/$id'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/earnings'
     | '/home'
     | '/auth/$role'
     | '/category/$id'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/earnings'
     | '/home'
     | '/auth/$role'
     | '/category/$id'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  EarningsRoute: typeof EarningsRoute
   HomeRoute: typeof HomeRoute
   AuthRoleRoute: typeof AuthRoleRoute
   CategoryIdRoute: typeof CategoryIdRoute
@@ -141,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/earnings': {
+      id: '/earnings'
+      path: '/earnings'
+      fullPath: '/earnings'
+      preLoaderRoute: typeof EarningsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  EarningsRoute: EarningsRoute,
   HomeRoute: HomeRoute,
   AuthRoleRoute: AuthRoleRoute,
   CategoryIdRoute: CategoryIdRoute,
