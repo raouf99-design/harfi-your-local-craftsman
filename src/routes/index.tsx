@@ -45,11 +45,6 @@ function Onboarding() {
             <h2 className="mt-2 text-2xl font-bold leading-snug">
               ابحث، اطلب، وأنجز<br /> أعمالك بثقة
             </h2>
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2 items-center"><span className="text-[color:var(--gold)]">●</span> حرفيون موثوقون في 58 ولاية</li>
-              <li className="flex gap-2 items-center"><span className="text-[color:var(--gold)]">●</span> تتبع طلبك لحظة بلحظة</li>
-              <li className="flex gap-2 items-center"><span className="text-[color:var(--gold)]">●</span> تقييم وضمان الجودة</li>
-            </ul>
           </div>
         </div>
 
