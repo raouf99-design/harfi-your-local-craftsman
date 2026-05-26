@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { getSession } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 
@@ -15,51 +16,45 @@ export const Route = createFileRoute("/requests/new")({
   component: NewRequest,
 });
 
-const STORE_KEY = "harfi_requests";
-
-interface RequestItem {
-  id: string;
-  craftsmanId?: string;
-  craftsmanName?: string;
-  category: string;
-  address: string;
-  description: string;
-  status: "pending" | "accepted" | "in_progress" | "completed" | "cancelled";
-  createdAt: number;
-}
-
 function NewRequest() {
-  const { craftsmanId, craftsmanName } = Route.useSearch();
+  const { craftsmanId } = Route.useSearch();
   const navigate = useNavigate();
   const [authed, setAuthed] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
     const s = getSession();
     if (!s) navigate({ to: "/" });
-    else setAuthed(true);
+    else {
+      setAuthed(true);
+      setUserId(s.user.id);
+    }
   }, [navigate]);
   const [category, setCategory] = useState("سباك");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
-  if (!authed) return null;
+  const [error, setError] = useState<string | null>(null);
+  if (!authed || !userId) return null;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const item: RequestItem = {
-      id: crypto.randomUUID(),
-      craftsmanId,
-      craftsmanName,
+    setError(null);
+    const { error: insertError } = await supabase.from("service_requests").insert({
+      customer_id: userId,
+      craftsman_id: craftsmanId ?? null,
       category,
       address,
       description,
       status: "pending",
-      createdAt: Date.now(),
-    };
-    const list: RequestItem[] = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
-    list.unshift(item);
-    localStorage.setItem(STORE_KEY, JSON.stringify(list));
-    setTimeout(() => navigate({ to: "/requests" }), 500);
+    });
+    if (insertError) {
+      console.error("[requests.new] insert failed", insertError);
+      setError("تعذّر إرسال الطلب، حاول مرة أخرى");
+      setLoading(false);
+      return;
+    }
+    navigate({ to: "/requests" });
   };
 
   return (
@@ -67,9 +62,6 @@ function NewRequest() {
       <div className="mx-auto max-w-md px-5 pt-10">
         <Link to="/home" className="text-sm text-muted-foreground">→ رجوع</Link>
         <h1 className="mt-4 text-2xl font-black">طلب خدمة جديد</h1>
-        {craftsmanName && (
-          <p className="mt-1 text-sm text-[color:var(--gold)]">للحرفي: {craftsmanName}</p>
-        )}
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           <Field label="نوع الخدمة">
@@ -98,6 +90,8 @@ function NewRequest() {
             💡 سيتم تحديد السعر مع الحرفي بعد المعاينة. الدفع يتم نقداً.
           </div>
 
+          {error && <p className="text-xs text-red-400 text-center">{error}</p>}
+
           <button disabled={loading} className="btn-gold w-full">
             {loading ? "جارٍ الإرسال..." : "إرسال الطلب"}
           </button>
@@ -123,6 +117,7 @@ function NewRequest() {
           border-radius: 14px; padding: 14px 20px;
           box-shadow: 0 8px 24px -8px color-mix(in oklab, var(--gold) 50%, transparent);
         }
+        .btn-gold:disabled { opacity: .6; }
       `}</style>
       <BottomNav />
       <FloatingContacts />

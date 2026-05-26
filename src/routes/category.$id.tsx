@@ -1,23 +1,70 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { CATEGORIES } from "@/lib/categories";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
-import { MapPin, Star } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/category/$id")({
   component: CategoryPage,
 });
 
-const MOCK = [
-  { id: "1", name: "محمد بن علي", rating: 4.9, jobs: 128, wilaya: "الجزائر", commune: "باب الزوار", price: "من 2000 دج" },
-  { id: "2", name: "كريم زيدان", rating: 4.8, jobs: 92, wilaya: "وهران", commune: "السانيا", price: "من 1500 دج" },
-  { id: "3", name: "ياسين حداد", rating: 4.7, jobs: 64, wilaya: "قسنطينة", commune: "الخروب", price: "من 1800 دج" },
-  { id: "4", name: "عبد القادر", rating: 4.6, jobs: 45, wilaya: "البليدة", commune: "بوفاريك", price: "من 1700 دج" },
-];
+const CATEGORY_TO_PROFESSION: Record<string, string> = {
+  plumber: "سباك",
+  electrician: "كهربائي",
+  painter: "دهان",
+  carpenter: "نجار",
+  blacksmith: "حداد",
+  tiler: "بلاط",
+  ac: "فني تكييف",
+  general: "أعمال عامة",
+};
+
+interface CraftsmanProfile {
+  user_id: string;
+  name: string | null;
+  profession: string | null;
+  wilaya: string | null;
+  commune: string | null;
+}
 
 function CategoryPage() {
   const { id } = Route.useParams();
   const cat = CATEGORIES.find((c) => c.id === id) ?? CATEGORIES[0];
+  const profession = CATEGORY_TO_PROFESSION[id] ?? cat.name;
+
+  const [list, setList] = useState<CraftsmanProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [wilayaFilter, setWilayaFilter] = useState("الكل");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, name, profession, wilaya, commune")
+        .eq("profession", profession)
+        .eq("available", true);
+      if (!active) return;
+      if (error) console.error("[category] fetch failed", error);
+      setList((data ?? []) as CraftsmanProfile[]);
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [profession]);
+
+  const wilayas = useMemo(() => {
+    const set = new Set<string>();
+    list.forEach((c) => c.wilaya && set.add(c.wilaya));
+    return Array.from(set);
+  }, [list]);
+
+  const filtered = wilayaFilter === "الكل" ? list : list.filter((c) => c.wilaya === wilayaFilter);
 
   return (
     <main className="min-h-screen bg-background pb-24">
@@ -29,44 +76,82 @@ function CategoryPage() {
             <div>
               <p className="text-xs text-[color:var(--gold)] tracking-widest font-bold">فئة</p>
               <h1 className="mt-1 text-2xl font-black">{cat.name}</h1>
-              <p className="mt-1 text-xs text-muted-foreground">{MOCK.length} حرفي متاح في منطقتك</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {loading ? "..." : `${filtered.length} حرفي متاح`}
+              </p>
             </div>
             <span className="text-5xl">{cat.icon}</span>
           </div>
         </div>
 
+        {wilayas.length > 0 && (
+          <div className="mt-5">
+            <label className="block text-xs text-muted-foreground mb-1.5">تصفية حسب الولاية</label>
+            <select
+              value={wilayaFilter}
+              onChange={(e) => setWilayaFilter(e.target.value)}
+              className="w-full bg-card border border-white/10 rounded-2xl px-4 py-3 text-sm outline-none focus:border-[color:var(--gold)]"
+            >
+              <option value="الكل">الكل</option>
+              {wilayas.map((w) => (
+                <option key={w} value={w}>{w}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <h2 className="mt-6 text-sm font-bold text-muted-foreground">الحرفيون المتاحون</h2>
-        <ul className="mt-3 space-y-3">
-          {MOCK.map((c) => (
-            <li key={c.id}>
-              <Link
-                to="/craftsman/$id"
-                params={{ id: c.id }}
-                search={{ cat: cat.id, name: c.name }}
-                className="card-gold rounded-2xl p-4 flex items-center gap-3 active:scale-[.98] transition-transform"
-              >
-                <div className="h-14 w-14 rounded-2xl gold-gradient text-black font-black flex items-center justify-center text-lg">
-                  {c.name.charAt(0)}
+
+        {loading ? (
+          <ul className="mt-3 space-y-3">
+            {[0, 1, 2, 3].map((i) => (
+              <li key={i} className="card-gold rounded-2xl p-4 flex items-center gap-3">
+                <Skeleton className="h-14 w-14 rounded-2xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-3 w-2/3" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold">{c.name}</p>
-                    <span className="text-xs flex items-center gap-1 text-[color:var(--gold)]">
-                      <Star className="h-3 w-3 fill-current" /> {c.rating}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                    <MapPin className="h-3 w-3" /> {c.wilaya} · {c.commune}
-                  </p>
-                  <div className="mt-2 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">{c.jobs} عمل منجز</span>
-                    <span className="text-[color:var(--gold)] font-bold">{c.price}</span>
-                  </div>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        ) : filtered.length === 0 ? (
+          <div className="mt-8 card-gold rounded-3xl p-8 text-center">
+            <div className="text-5xl">😕</div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              لا يوجد حرفيون متاحون في هذه الفئة حالياً
+            </p>
+          </div>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {filtered.map((c) => {
+              const displayName = c.name || "حرفي";
+              return (
+                <li key={c.user_id}>
+                  <Link
+                    to="/craftsman/$id"
+                    params={{ id: c.user_id }}
+                    search={{ cat: cat.id, name: displayName }}
+                    className="card-gold rounded-2xl p-4 flex items-center gap-3 active:scale-[.98] transition-transform"
+                  >
+                    <div className="h-14 w-14 rounded-2xl gold-gradient text-black font-black flex items-center justify-center text-lg">
+                      {displayName.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold">{displayName}</p>
+                      <p className="text-xs text-[color:var(--gold)] mt-0.5">{c.profession}</p>
+                      {(c.wilaya || c.commune) && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                          <MapPin className="h-3 w-3" /> {c.wilaya}
+                          {c.commune ? ` · ${c.commune}` : ""}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
       <BottomNav />
       <FloatingContacts />

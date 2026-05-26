@@ -1,25 +1,25 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Star } from "lucide-react";
 import { getSession } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/requests/")({
   component: RequestsList,
 });
 
-const STORE_KEY = "harfi_requests";
-
 interface RequestItem {
   id: string;
-  craftsmanName?: string;
+  craftsman_id: string | null;
   category: string;
   address: string;
   description: string;
   status: "pending" | "accepted" | "in_progress" | "completed" | "cancelled";
-  createdAt: number;
-  rating?: number;
+  created_at: string;
+  rating: number | null;
 }
 
 const STATUS: Record<RequestItem["status"], { label: string; color: string }> = {
@@ -33,7 +33,21 @@ const STATUS: Record<RequestItem["status"], { label: string; color: string }> = 
 function RequestsList() {
   const navigate = useNavigate();
   const [authed, setAuthed] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [items, setItems] = useState<RequestItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchItems = useCallback(async (uid: string) => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("service_requests")
+      .select("id, craftsman_id, category, address, description, status, created_at, rating")
+      .eq("customer_id", uid)
+      .order("created_at", { ascending: false });
+    if (error) console.error("[requests] fetch failed", error);
+    setItems((data ?? []) as RequestItem[]);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     const s = getSession();
@@ -42,19 +56,20 @@ function RequestsList() {
       return;
     }
     setAuthed(true);
-    const list: RequestItem[] = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
-    setItems(list);
-  }, [navigate]);
+    setUserId(s.user.id);
+    fetchItems(s.user.id);
+  }, [navigate, fetchItems]);
 
-  const rate = (id: string, r: number) => {
-    // NOTE: Client-side rating is UX-only. Server must enforce that the
-    // request is in `completed` state and that the caller is the customer.
-    const next = items.map((i) => i.id === id ? { ...i, rating: r } : i);
-    setItems(next);
-    localStorage.setItem(STORE_KEY, JSON.stringify(next));
+  const rate = async (id: string, r: number) => {
+    const { error } = await supabase.from("service_requests").update({ rating: r }).eq("id", id);
+    if (error) {
+      console.error("[requests] rate failed", error);
+      return;
+    }
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, rating: r } : i)));
   };
 
-  if (!authed) return null;
+  if (!authed || !userId) return null;
 
   return (
     <main className="min-h-screen bg-background pb-24">
@@ -62,7 +77,17 @@ function RequestsList() {
         <h1 className="text-2xl font-black">طلباتي</h1>
         <p className="mt-1 text-sm text-muted-foreground">تابع جميع طلباتك السابقة والحالية</p>
 
-        {items.length === 0 ? (
+        {loading ? (
+          <ul className="mt-5 space-y-3">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="card-gold rounded-2xl p-4 space-y-3">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-3 w-full" />
+              </li>
+            ))}
+          </ul>
+        ) : items.length === 0 ? (
           <div className="mt-10 card-gold rounded-3xl p-8 text-center">
             <div className="text-5xl">📭</div>
             <p className="mt-3 font-bold">لا توجد طلبات بعد</p>
@@ -80,7 +105,6 @@ function RequestsList() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="font-bold">{r.category}</p>
-                      {r.craftsmanName && <p className="text-xs text-[color:var(--gold)]">{r.craftsmanName}</p>}
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${st.color}`}>{st.label}</span>
                   </div>
@@ -89,7 +113,7 @@ function RequestsList() {
 
                   <div className="mt-3 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">
-                      {new Date(r.createdAt).toLocaleDateString("ar-DZ")}
+                      {new Date(r.created_at).toLocaleDateString("ar-DZ")}
                     </span>
                   </div>
 
