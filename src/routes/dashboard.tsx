@@ -49,9 +49,8 @@ function Dashboard() {
     setJobs((js) => js.map((j) => (j.id === id ? { ...j, status } : j)));
 
   // NOTE: This client-side role check is a UX gate only. Real protection
-  // for craftsman-only data and actions MUST be enforced server-side on
-  // the backend API — the JWT issued by /auth/verify-otp carries the
-  // server-assigned role, and every craftsman endpoint must verify it.
+  // for craftsman-only data and actions MUST be enforced server-side using
+  // the server-issued session and role stored in Lovable Cloud.
   const isCraftsman = session.user.role === "craftsman" && !!session.token;
   if (!isCraftsman) {
     return (
