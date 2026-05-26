@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/api";
 import { getCraftsmanPhone } from "@/lib/profile.functions";
 import { getCraftsmenStats } from "@/lib/service-requests.functions";
+import { getCraftsmanPortfolio } from "@/lib/portfolio.functions";
 
 const searchSchema = z.object({
   cat: z.string().optional(),
@@ -28,7 +29,14 @@ interface Profile {
   wilaya: string | null;
   commune: string | null;
   available: boolean;
+  avatar_url?: string | null;
   phone?: string | null;
+}
+
+interface PortfolioItem {
+  id: string;
+  image_url: string;
+  caption: string | null;
 }
 
 function CraftsmanProfile() {
@@ -36,18 +44,21 @@ function CraftsmanProfile() {
   const { cat } = Route.useSearch();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<{ count: number; rating: number | null } | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const authed = !!getSession();
   const fetchPhone = useServerFn(getCraftsmanPhone);
   const fetchStats = useServerFn(getCraftsmenStats);
+  const fetchPortfolio = useServerFn(getCraftsmanPortfolio);
 
   useEffect(() => {
     let active = true;
     (async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, name, profession, wilaya, commune, available")
+        .select("user_id, name, profession, wilaya, commune, available, avatar_url")
         .eq("user_id", id)
         .maybeSingle();
       if (!active) return;
@@ -72,6 +83,12 @@ function CraftsmanProfile() {
       } catch (e) {
         console.error("[craftsman] stats failed", e);
       }
+      try {
+        const res = await fetchPortfolio({ data: { userId: id } });
+        if (active) setPortfolio(res.items as PortfolioItem[]);
+      } catch (e) {
+        console.error("[craftsman] portfolio failed", e);
+      }
       if (!active) return;
       setProfile({ ...(data as Profile), phone });
       setLoading(false);
@@ -79,7 +96,7 @@ function CraftsmanProfile() {
     return () => {
       active = false;
     };
-  }, [id, authed, fetchPhone, fetchStats]);
+  }, [id, authed, fetchPhone, fetchStats, fetchPortfolio]);
 
   if (loading) {
     return (
@@ -137,8 +154,12 @@ function CraftsmanProfile() {
         </Link>
 
         <div className="mt-5 flex items-center gap-4">
-          <div className="h-20 w-20 rounded-3xl gold-gradient text-black font-black flex items-center justify-center text-3xl glow-gold">
-            {displayName.charAt(0)}
+          <div className="h-20 w-20 rounded-3xl overflow-hidden gold-gradient text-black font-black flex items-center justify-center text-3xl glow-gold">
+            {profile.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              displayName.charAt(0)
+            )}
           </div>
           <div>
             <h1 className="text-2xl font-black">{displayName}</h1>
@@ -185,7 +206,34 @@ function CraftsmanProfile() {
             حرفي متاح للعمل في منطقتك. يمكنك إرسال طلب خدمة وسيتم التواصل معك قريباً.
           </p>
         </div>
+
+        {portfolio.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-sm font-bold mb-3">معرض الأعمال</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {portfolio.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setLightbox(p.image_url)}
+                  className="aspect-square rounded-xl overflow-hidden border border-white/10 bg-card"
+                >
+                  <img src={p.image_url} alt={p.caption ?? ""} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+        >
+          <img src={lightbox} alt="" className="max-h-full max-w-full rounded-2xl" />
+        </div>
+      )}
 
       <div className="fixed bottom-16 inset-x-0 z-30 px-5">
         <div className="mx-auto max-w-md flex gap-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2">

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { api, setSession, ApiError, type Role, type User } from "@/lib/api";
+import { api, setSession, getSession, ApiError, type Role, type User } from "@/lib/api";
+import { PortfolioManager } from "@/components/PortfolioManager";
 
 const ALLOWED_ROLES: readonly Role[] = ["customer", "craftsman"] as const;
 
@@ -14,7 +15,7 @@ function AuthPage() {
   const validRole: Role = isAllowedRole ? (role as Role) : "customer";
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<"phone" | "otp" | "media">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
@@ -87,7 +88,11 @@ function AuthPage() {
       });
 
       setSession({ user: res.user, token: res.token });
-      navigate({ to: res.user.role === "craftsman" ? "/dashboard" : "/home" });
+      if (res.user.role === "craftsman") {
+        setStep("media");
+      } else {
+        navigate({ to: "/home" });
+      }
     } catch (err) {
       console.error("[auth] OTP verify failed", err);
       setError("رمز التحقق غير صحيح أو منتهي الصلاحية");
@@ -108,16 +113,46 @@ function AuthPage() {
             {isCraftsman ? "حساب حرفي" : "حساب عميل"}
           </p>
           <h1 className="mt-2 text-3xl font-black">
-            {step === "phone" ? "أدخل رقم هاتفك" : "تحقق من الرمز"}
+            {step === "phone"
+              ? "أدخل رقم هاتفك"
+              : step === "otp"
+                ? "تحقق من الرمز"
+                : "صورتك وأعمالك"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {step === "phone"
               ? "سنرسل لك رمز التحقق عبر رسالة قصيرة."
-              : `أدخل الرمز المرسل إلى ${phone}`}
+              : step === "otp"
+                ? `أدخل الرمز المرسل إلى ${phone}`
+                : "أضف صورة شخصية وبعض صور أعمالك ليثق بك العملاء أكثر."}
           </p>
         </div>
 
-        {step === "phone" ? (
+        {step === "media" ? (
+          <div className="mt-8 space-y-5">
+            {(() => {
+              const s = getSession();
+              if (!s?.user.id) return <p className="text-xs text-red-400">جلسة غير صالحة</p>;
+              return (
+                <PortfolioManager userId={s.user.id} currentAvatarUrl={null} />
+              );
+            })()}
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/dashboard" })}
+              className="btn-gold w-full"
+            >
+              متابعة إلى لوحة التحكم
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/dashboard" })}
+              className="w-full text-sm text-muted-foreground py-2"
+            >
+              تخطي الآن
+            </button>
+          </div>
+        ) : step === "phone" ? (
           <form onSubmit={sendOtp} className="mt-8 space-y-4">
             {!isCraftsman && (
               <Field label="الاسم الكامل">

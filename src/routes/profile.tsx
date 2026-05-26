@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
+import { PortfolioManager } from "@/components/PortfolioManager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSession, setSession, type Session } from "@/lib/api";
 import { getMyProfile, updateMyProfile } from "@/lib/profile.functions";
@@ -29,6 +30,7 @@ function ProfilePage() {
   const [wilaya, setWilaya] = useState("");
   const [commune, setCommune] = useState("");
   const [available, setAvailable] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const s = getSession();
@@ -46,6 +48,7 @@ function ProfilePage() {
         setWilaya(p?.wilaya ?? s.user.wilaya ?? "");
         setCommune(p?.commune ?? s.user.commune ?? "");
         setAvailable(p?.available ?? true);
+        setAvatarUrl(p?.avatar_url ?? null);
       } catch (e) {
         console.error("[profile] load failed", e);
       } finally {
@@ -100,8 +103,12 @@ function ProfilePage() {
         <Link to="/home" className="text-sm text-muted-foreground">→ رجوع</Link>
 
         <div className="mt-5 flex items-center gap-4">
-          <div className="h-20 w-20 rounded-3xl gold-gradient text-black font-black flex items-center justify-center text-3xl glow-gold">
-            {(name || session.user.name || "ح").charAt(0)}
+          <div className="h-20 w-20 rounded-3xl overflow-hidden gold-gradient text-black font-black flex items-center justify-center text-3xl glow-gold">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              (name || session.user.name || "ح").charAt(0)
+            )}
           </div>
           <div>
             <h1 className="text-2xl font-black">{name || "حسابي"}</h1>
@@ -161,7 +168,17 @@ function ProfilePage() {
             {error && <p className="text-xs text-red-400 text-center">{error}</p>}
             {savedOk && (
               <p className="text-xs text-emerald-400 text-center">تم حفظ التعديلات ✓</p>
-            )}
+        )}
+
+        {!loading && isCraftsman && session.user.id && (
+          <div className="mt-6">
+            <PortfolioManager
+              userId={session.user.id}
+              currentAvatarUrl={avatarUrl}
+              onAvatarChange={(u) => setAvatarUrl(u)}
+            />
+          </div>
+        )}
 
             <button disabled={saving} className="btn-gold w-full inline-flex items-center justify-center gap-2">
               <Save className="h-4 w-4" /> {saving ? "جارٍ الحفظ..." : "حفظ التعديلات"}

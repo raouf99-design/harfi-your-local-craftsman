@@ -30,6 +30,7 @@ interface CraftsmanProfile {
   profession: string | null;
   wilaya: string | null;
   commune: string | null;
+  avatar_url: string | null;
 }
 
 function CategoryPage() {
@@ -49,7 +50,7 @@ function CategoryPage() {
     (async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, name, profession, wilaya, commune")
+        .select("user_id, name, profession, wilaya, commune, avatar_url")
         .eq("profession", profession)
         .eq("available", true);
       if (!active) return;
@@ -148,8 +149,12 @@ function CategoryPage() {
                     search={{ cat: cat.id, name: displayName }}
                     className="card-gold rounded-2xl p-4 flex items-center gap-3 active:scale-[.98] transition-transform"
                   >
-                    <div className="h-14 w-14 rounded-2xl gold-gradient text-black font-black flex items-center justify-center text-lg">
-                      {displayName.charAt(0)}
+                    <div className="h-14 w-14 rounded-2xl overflow-hidden gold-gradient text-black font-black flex items-center justify-center text-lg shrink-0">
+                      {c.avatar_url ? (
+                        <img src={c.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        displayName.charAt(0)
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
