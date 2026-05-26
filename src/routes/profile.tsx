@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
+import { PortfolioManager } from "@/components/PortfolioManager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSession, setSession, type Session } from "@/lib/api";
 import { getMyProfile, updateMyProfile } from "@/lib/profile.functions";
