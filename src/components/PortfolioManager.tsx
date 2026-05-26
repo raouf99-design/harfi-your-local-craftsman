@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   uploadCraftsmanMedia,
   getCraftsmanPortfolio,
@@ -35,6 +38,7 @@ export function PortfolioManager({ userId, currentAvatarUrl, onAvatarChange }: P
   const upload = useServerFn(uploadCraftsmanMedia);
   const list = useServerFn(getCraftsmanPortfolio);
   const del = useServerFn(deletePortfolioItem);
+  const navigate = useNavigate();
 
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [avatar, setAvatar] = useState<string | null>(currentAvatarUrl);
@@ -43,6 +47,29 @@ export function PortfolioManager({ userId, currentAvatarUrl, onAvatarChange }: P
   const [error, setError] = useState<string | null>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
   const workRef = useRef<HTMLInputElement>(null);
+
+  // Verify Supabase session exists before uploads — otherwise the server
+  // function's auth middleware rejects with "No authorization header".
+  const ensureSession = async (): Promise<boolean> => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session?.access_token) {
+      toast.error("انتهت الجلسة، يرجى تسجيل الدخول مجدداً");
+      navigate({ to: "/auth/$role", params: { role: "craftsman" } });
+      return false;
+    }
+    return true;
+  };
+
+  const isAuthError = (err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    return /unauthor|no authorization|401/i.test(msg);
+  };
+
+  const handleAuthFailure = async () => {
+    try { await supabase.auth.signOut(); } catch { /* ignore */ }
+    toast.error("انتهت الجلسة، يرجى تسجيل الدخول مجدداً");
+    navigate({ to: "/auth/$role", params: { role: "craftsman" } });
+  };
 
   useEffect(() => {
     setAvatar(currentAvatarUrl);
