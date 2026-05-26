@@ -116,3 +116,20 @@
 @utility glow-gold {
   box-shadow: 0 8px 32px -8px color-mix(in oklab, var(--gold) 40%, transparent);
 }
+
+/* PWA native feel */
+html, body {
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+input, textarea, [contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+}
