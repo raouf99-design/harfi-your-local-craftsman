@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,6 +8,7 @@ import { MapPin, Phone, MessageCircle } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/lib/api";
+import { getCraftsmanPhone } from "@/lib/profile.functions";
 
 const searchSchema = z.object({
   cat: z.string().optional(),
@@ -35,31 +37,40 @@ function CraftsmanProfile() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const authed = !!getSession();
+  const fetchPhone = useServerFn(getCraftsmanPhone);
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data, error } = authed
-        ? await supabase
-            .from("profiles")
-            .select("user_id, name, profession, wilaya, commune, available, phone")
-            .eq("user_id", id)
-            .maybeSingle()
-        : await supabase
-            .from("profiles")
-            .select("user_id, name, profession, wilaya, commune, available")
-            .eq("user_id", id)
-            .maybeSingle();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, name, profession, wilaya, commune, available")
+        .eq("user_id", id)
+        .maybeSingle();
       if (!active) return;
       if (error) console.error("[craftsman] fetch failed", error);
-      if (!data) setNotFound(true);
-      else setProfile(data as Profile);
+      if (!data) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      let phone: string | null = null;
+      if (authed) {
+        try {
+          const res = await fetchPhone({ data: { userId: id } });
+          phone = res.phone;
+        } catch (e) {
+          console.error("[craftsman] phone fetch failed", e);
+        }
+      }
+      if (!active) return;
+      setProfile({ ...(data as Profile), phone });
       setLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, [id, authed]);
+  }, [id, authed, fetchPhone]);
 
   if (loading) {
     return (
