@@ -39,17 +39,46 @@ export const createRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => CreateRequestSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await supabaseAdmin.from("service_requests").insert({
-      customer_id: context.userId,
-      craftsman_id: data.craftsmanId ?? null,
-      category: data.category,
-      address: data.address,
-      description: data.description,
-      status: "pending",
-    });
+    const { data: inserted, error } = await supabaseAdmin
+      .from("service_requests")
+      .insert({
+        customer_id: context.userId,
+        craftsman_id: data.craftsmanId ?? null,
+        category: data.category,
+        address: data.address,
+        description: data.description,
+        status: "pending",
+      })
+      .select("id")
+      .maybeSingle();
     if (error) {
       console.error("[service-requests] create failed", error);
       throw new Error("تعذّر إرسال الطلب");
+    }
+    // Notify the targeted craftsman (if any), otherwise notify all craftsmen in the category.
+    if (data.craftsmanId && inserted?.id) {
+      await createNotification({
+        userId: data.craftsmanId,
+        type: "request_new",
+        title: "طلب جديد",
+        body: `${data.category} — ${data.address}`,
+        requestId: inserted.id,
+      });
+    } else if (inserted?.id) {
+      const { data: crafts } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id")
+        .eq("profession", data.category)
+        .eq("available", true);
+      for (const c of crafts ?? []) {
+        await createNotification({
+          userId: c.user_id,
+          type: "request_new",
+          title: "طلب جديد متاح",
+          body: `${data.category} — ${data.address}`,
+          requestId: inserted.id,
+        });
+      }
     }
     return { ok: true };
   });
