@@ -16,6 +16,15 @@ const TXNS = [
 ];
 
 function Earnings() {
+  const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const s = getSession();
+    if (!s || s.user.role !== "craftsman") navigate({ to: "/" });
+    else setReady(true);
+  }, [navigate]);
+  if (!ready) return null;
+
   const total = TXNS.reduce((s, t) => s + t.amount, 0);
   const month = total;
   const week = TXNS.slice(0, 2).reduce((s, t) => s + t.amount, 0);
