@@ -63,9 +63,7 @@ function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="h-10 w-10 rounded-xl bg-card border border-white/10 flex items-center justify-center">
-              <Bell className="h-4 w-4 text-[color:var(--gold)]" />
-            </button>
+            <NotificationBell />
             <button
               onClick={() => { setSession(null); navigate({ to: "/" }); }}
               className="h-10 w-10 rounded-xl bg-card border border-white/10 flex items-center justify-center"
