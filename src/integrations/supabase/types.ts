@@ -77,9 +77,10 @@ export type Database = {
           avatar_url: string | null
           commune: string | null
           created_at: string
+          email: string | null
           id: string
           name: string | null
-          phone: string
+          phone: string | null
           profession: string | null
           updated_at: string
           user_id: string
@@ -90,9 +91,10 @@ export type Database = {
           avatar_url?: string | null
           commune?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           name?: string | null
-          phone: string
+          phone?: string | null
           profession?: string | null
           updated_at?: string
           user_id: string
@@ -103,9 +105,10 @@ export type Database = {
           avatar_url?: string | null
           commune?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           name?: string | null
-          phone?: string
+          phone?: string | null
           profession?: string | null
           updated_at?: string
           user_id?: string
