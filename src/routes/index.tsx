@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { FloatingContacts } from "@/components/FloatingContacts";
 import { useEffect } from "react";
 import { getSession } from "@/lib/api";
+import logo from "@/assets/harfi-logo.png";
 
 export const Route = createFileRoute("/")({
   component: Onboarding,
