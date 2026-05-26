@@ -30,6 +30,7 @@ interface CraftsmanProfile {
   profession: string | null;
   wilaya: string | null;
   commune: string | null;
+  avatar_url: string | null;
 }
 
 function CategoryPage() {
