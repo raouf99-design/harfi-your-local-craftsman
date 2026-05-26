@@ -210,25 +210,35 @@ function Dashboard() {
               </li>
             ))}
           </ul>
+        ) : jobs.filter((j) => j.status !== "completed" && j.status !== "cancelled").length === 0 ? (
+          <div className="mt-4 card-gold rounded-3xl p-8 text-center">
+            <div className="text-5xl">📭</div>
+            <p className="mt-3 font-bold">لا توجد طلبات حالياً</p>
+            <p className="mt-1 text-xs text-muted-foreground">سنُعلِمك فور وصول طلب جديد.</p>
+          </div>
         ) : (
           <ul className="mt-3 space-y-3">
             {jobs
               .filter((j) => j.status !== "completed" && j.status !== "cancelled")
               .map((j) => (
                 <li key={j.id} className="card-gold rounded-2xl p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-bold">طلب جديد</p>
-                      <p className="text-xs text-[color:var(--gold)]">{j.category}</p>
-                      <p className="text-xs text-muted-foreground mt-1">📍 {j.address}</p>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{j.description}</p>
+                  <Link to="/requests/$id" params={{ id: j.id }} className="block">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-bold truncate">
+                          {j.status === "pending" ? "طلب جديد" : j.customer_name || "عميل"}
+                        </p>
+                        <p className="text-xs text-[color:var(--gold)]">{j.category}</p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">📍 {j.address}</p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{j.description}</p>
+                      </div>
+                      {j.price ? (
+                        <p className="text-sm font-black gold-text shrink-0">
+                          {j.price.toLocaleString("ar-DZ")} دج
+                        </p>
+                      ) : null}
                     </div>
-                    {j.price && (
-                      <p className="text-sm font-black gold-text">
-                        {j.price.toLocaleString("ar-DZ")} دج
-                      </p>
-                    )}
-                  </div>
+                  </Link>
 
                   {j.status === "pending" && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
@@ -252,9 +262,41 @@ function Dashboard() {
 
                   {j.status === "accepted" && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button className="py-2.5 rounded-xl bg-card border border-white/10 text-sm">
-                        📷 رفع صور
+                      {j.customer_phone ? (
+                        <a
+                          href={`tel:${j.customer_phone}`}
+                          className="py-2.5 rounded-xl bg-card border border-white/10 text-sm flex items-center justify-center gap-1.5"
+                        >
+                          <Phone className="h-3.5 w-3.5 text-[color:var(--gold)]" /> اتصال
+                        </a>
+                      ) : (
+                        <span className="py-2.5 rounded-xl bg-card border border-white/10 text-sm text-center text-muted-foreground">
+                          —
+                        </span>
+                      )}
+                      <button
+                        onClick={() => startJob(j.id)}
+                        className="py-2.5 rounded-xl gold-gradient text-black text-sm font-bold"
+                      >
+                        ابدأ العمل
                       </button>
+                    </div>
+                  )}
+
+                  {j.status === "in_progress" && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {j.customer_phone ? (
+                        <a
+                          href={`tel:${j.customer_phone}`}
+                          className="py-2.5 rounded-xl bg-card border border-white/10 text-sm flex items-center justify-center gap-1.5"
+                        >
+                          <Phone className="h-3.5 w-3.5 text-[color:var(--gold)]" /> اتصال
+                        </a>
+                      ) : (
+                        <span className="py-2.5 rounded-xl bg-card border border-white/10 text-sm text-center text-muted-foreground">
+                          —
+                        </span>
+                      )}
                       <button
                         onClick={() => completeJob(j.id)}
                         className="py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-sm font-bold"
